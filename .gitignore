@@ -1,0 +1,21 @@
+node_modules
+dist
+.env
+.env.local
+.env.production
+.vercel
+.vite
+
+# Sensitive tokens and API keys
+token.md
+secrets.md
+*.secret
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo

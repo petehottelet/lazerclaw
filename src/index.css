@@ -1,0 +1,1153 @@
+@import url('https://fonts.googleapis.com/css2?family=New+Rocker&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+/* New Rocker font for headlines and buttons */
+.font-rocker {
+  font-family: 'New Rocker', cursive;
+}
+h1, h2, h3, .headline {
+  font-family: 'New Rocker', cursive;
+}
+button {
+  font-family: 'New Rocker', cursive;
+}
+
+/* Color cycling glow animation */
+@keyframes colorCycleGlow {
+  0% { filter: drop-shadow(0 0 8px rgba(100,160,255,0.6)) drop-shadow(0 0 16px rgba(130,190,255,0.4)) hue-rotate(0deg); }
+  25% { filter: drop-shadow(0 0 8px rgba(200,100,255,0.6)) drop-shadow(0 0 16px rgba(180,130,255,0.4)) hue-rotate(45deg); }
+  50% { filter: drop-shadow(0 0 8px rgba(255,100,200,0.6)) drop-shadow(0 0 16px rgba(255,130,180,0.4)) hue-rotate(90deg); }
+  75% { filter: drop-shadow(0 0 8px rgba(100,255,200,0.6)) drop-shadow(0 0 16px rgba(130,255,180,0.4)) hue-rotate(135deg); }
+  100% { filter: drop-shadow(0 0 8px rgba(100,160,255,0.6)) drop-shadow(0 0 16px rgba(130,190,255,0.4)) hue-rotate(0deg); }
+}
+.logo-glow-cycle {
+  animation: colorCycleGlow 6s ease-in-out infinite;
+}
+
+/* Welcome page logo zap in — lightning strikes it into existence */
+@keyframes logoFadeIn {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Heavy impact thunk — something massive just landed nearby */
+@keyframes logoThunk {
+  0%   { transform: translateY(0) scaleY(1) scaleX(1); }
+  12%  { transform: translateY(6px) scaleY(0.97) scaleX(1.015); }
+  28%  { transform: translateY(-3px) scaleY(1.01) scaleX(0.995); }
+  44%  { transform: translateY(1.5px) scaleY(0.995) scaleX(1.003); }
+  64%  { transform: translateY(-0.5px) scaleY(1.002); }
+  100% { transform: translateY(0) scaleY(1) scaleX(1); }
+}
+
+/* Welcome page logo glow — breathes in intensity as it color-cycles */
+@keyframes welcomeLogoGlow {
+  0%   { filter: drop-shadow(0 0 30px rgba(139,92,246,0.42)) drop-shadow(0 0 60px rgba(6,182,212,0.28)) drop-shadow(0 0 100px rgba(139,92,246,0.21)); }
+  12%  { filter: drop-shadow(0 0 14px rgba(170,96,250,0.18)) drop-shadow(0 0 28px rgba(90,156,234,0.12)) drop-shadow(0 0 44px rgba(170,96,250,0.07)); }
+  25%  { filter: drop-shadow(0 0 40px rgba(200,100,255,0.55)) drop-shadow(0 0 80px rgba(180,130,255,0.40)) drop-shadow(0 0 120px rgba(200,100,255,0.25)); }
+  37%  { filter: drop-shadow(0 0 16px rgba(100,140,255,0.20)) drop-shadow(0 0 32px rgba(140,218,228,0.14)) drop-shadow(0 0 48px rgba(100,140,255,0.08)); }
+  50%  { filter: drop-shadow(0 0 38px rgba(6,182,212,0.55)) drop-shadow(0 0 75px rgba(100,255,200,0.40)) drop-shadow(0 0 115px rgba(6,182,212,0.25)); }
+  62%  { filter: drop-shadow(0 0 14px rgba(50,170,216,0.18)) drop-shadow(0 0 28px rgba(80,215,208,0.12)) drop-shadow(0 0 44px rgba(50,170,216,0.07)); }
+  75%  { filter: drop-shadow(0 0 42px rgba(100,160,255,0.55)) drop-shadow(0 0 82px rgba(130,190,255,0.42)) drop-shadow(0 0 125px rgba(100,160,255,0.28)); }
+  87%  { filter: drop-shadow(0 0 15px rgba(120,126,246,0.19)) drop-shadow(0 0 30px rgba(68,138,234,0.13)) drop-shadow(0 0 46px rgba(120,126,246,0.07)); }
+  100% { filter: drop-shadow(0 0 30px rgba(139,92,246,0.42)) drop-shadow(0 0 60px rgba(6,182,212,0.28)) drop-shadow(0 0 100px rgba(139,92,246,0.21)); }
+}
+
+/* Purple galaxy effects */
+@keyframes galaxyFloat {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.7; }
+  50% { transform: translateY(-3px) scale(1.1); opacity: 1; }
+}
+@keyframes galaxyPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+@keyframes nebulaShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.galaxy-header {
+  position: relative;
+}
+.galaxy-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(139,92,246,0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(168,85,247,0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(147,51,234,0.1) 0%, transparent 60%);
+  background-size: 200% 200%;
+  animation: nebulaShift 15s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+.galaxy-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: white;
+  border-radius: 50%;
+  animation: galaxyFloat 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+.galaxy-star::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle, rgba(168,85,247,0.6) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+/* Music button mysterious effect */
+@keyframes mysteryPulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(139,92,246,0.4), 0 0 30px rgba(168,85,247,0.2), inset 0 0 10px rgba(139,92,246,0.2); }
+  50% { box-shadow: 0 0 25px rgba(168,85,247,0.6), 0 0 50px rgba(139,92,246,0.3), inset 0 0 15px rgba(168,85,247,0.3); }
+}
+@keyframes mysteryGlow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.music-mystery {
+  background: linear-gradient(135deg, rgba(139,92,246,0.3) 0%, rgba(168,85,247,0.4) 50%, rgba(139,92,246,0.3) 100%);
+  background-size: 200% 200%;
+  animation: mysteryGlow 3s ease-in-out infinite, mysteryPulse 2s ease-in-out infinite;
+  border: 1px solid rgba(168,85,247,0.5);
+}
+
+/* ── Responsive Toolbar ─────────────────────────────────────────── */
+.tb-compact .tb-btn > span { display: none; }
+.tb-compact .tb-btn { padding-left: 6px; padding-right: 6px; }
+.tb-compact .tb-label { display: none; }
+.tb-compact .ai-tools-label { display: none; }
+.tb-compact .logout-label { display: none; }
+.tb-compact .download-label { display: none; }
+
+/* ── Color Theme System ─────────────────────────────────────────── */
+
+/* Default Light Mode - Heavy Metal Monochrome with Diamond Sparkle */
+html, html[data-theme="default"] {
+  --th-surface: #fafafa;
+  --th-bg: #f0f0f2;
+  --th-border: #d4d4d8;
+  --th-surface-hover: #f4f4f5;
+  --th-accent: #3f3f46;
+  --th-accent-hover: #27272a;
+  --th-sidebar: #18181b;
+  --th-sidebar-border: transparent;
+  --th-text: #09090b;
+  --th-text-secondary: #52525b;
+  --th-text-muted: #a1a1aa;
+  --th-input-bg: #ffffff;
+  --th-input-border: #d4d4d8;
+  /* Diamond sparkle gradient for microinteractions */
+  --diamond-sparkle: linear-gradient(
+    135deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,100,100,0.15) 10%,
+    rgba(255,200,100,0.15) 20%,
+    rgba(200,255,100,0.15) 30%,
+    rgba(100,255,200,0.15) 40%,
+    rgba(100,200,255,0.15) 50%,
+    rgba(150,100,255,0.15) 60%,
+    rgba(255,100,200,0.15) 70%,
+    rgba(255,255,255,0) 100%
+  );
+}
+html[data-dark], html[data-theme="default"][data-dark] {
+  --th-surface: #1f2937;
+  --th-bg: #111827;
+  --th-border: #374151;
+  --th-surface-hover: #374151;
+  --th-accent: #818cf8;
+  --th-accent-hover: #6366f1;
+  --th-sidebar: #111827;
+  --th-sidebar-border: #374151;
+  --th-text: #f3f4f6;
+  --th-text-secondary: #d1d5db;
+  --th-text-muted: #9ca3af;
+  --th-input-bg: #374151;
+  --th-input-border: #4b5563;
+}
+
+/* Ocean */
+html[data-theme="ocean"] {
+  --th-surface: #f0f7ff;
+  --th-bg: #dde8f4;
+  --th-border: #b0c8e0;
+  --th-surface-hover: #e4eef8;
+  --th-accent: #0369a1;
+  --th-accent-hover: #075985;
+  --th-sidebar: #0c2340;
+  --th-sidebar-border: transparent;
+  --th-text: #0c2340;
+  --th-text-secondary: #4b6a8a;
+  --th-text-muted: #7a9abb;
+  --th-input-bg: #ffffff;
+  --th-input-border: #b0c8e0;
+}
+html[data-theme="ocean"][data-dark] {
+  --th-surface: #0d1b2e;
+  --th-bg: #081220;
+  --th-border: #1a3050;
+  --th-surface-hover: #142640;
+  --th-accent: #38bdf8;
+  --th-accent-hover: #0ea5e9;
+  --th-sidebar: #060e18;
+  --th-sidebar-border: #1a3050;
+  --th-text: #c8ddf0;
+  --th-text-secondary: #8aacc8;
+  --th-text-muted: #5a8aaa;
+  --th-input-bg: #142640;
+  --th-input-border: #1a3050;
+}
+
+/* Ember */
+html[data-theme="ember"] {
+  --th-surface: #fffbf3;
+  --th-bg: #f0e4d0;
+  --th-border: #d4b898;
+  --th-surface-hover: #f8f0e2;
+  --th-accent: #c2410c;
+  --th-accent-hover: #9a3412;
+  --th-sidebar: #2c1a08;
+  --th-sidebar-border: transparent;
+  --th-text: #2c1a08;
+  --th-text-secondary: #7a5a30;
+  --th-text-muted: #a88a60;
+  --th-input-bg: #ffffff;
+  --th-input-border: #d4b898;
+}
+html[data-theme="ember"][data-dark] {
+  --th-surface: #1c1510;
+  --th-bg: #120e08;
+  --th-border: #3a2a18;
+  --th-surface-hover: #2a1f14;
+  --th-accent: #fb923c;
+  --th-accent-hover: #f97316;
+  --th-sidebar: #0e0a06;
+  --th-sidebar-border: #3a2a18;
+  --th-text: #e8d4bc;
+  --th-text-secondary: #b89870;
+  --th-text-muted: #8a6a48;
+  --th-input-bg: #2a1f14;
+  --th-input-border: #3a2a18;
+}
+
+/* Forest */
+html[data-theme="forest"] {
+  --th-surface: #f2faf4;
+  --th-bg: #d8ecde;
+  --th-border: #a8d0b4;
+  --th-surface-hover: #e6f4ea;
+  --th-accent: #15803d;
+  --th-accent-hover: #166534;
+  --th-sidebar: #082418;
+  --th-sidebar-border: transparent;
+  --th-text: #082418;
+  --th-text-secondary: #3a6a4a;
+  --th-text-muted: #6a9a7a;
+  --th-input-bg: #ffffff;
+  --th-input-border: #a8d0b4;
+}
+html[data-theme="forest"][data-dark] {
+  --th-surface: #0e1a12;
+  --th-bg: #0a120e;
+  --th-border: #1a3d24;
+  --th-surface-hover: #16301e;
+  --th-accent: #4ade80;
+  --th-accent-hover: #22c55e;
+  --th-sidebar: #060e0a;
+  --th-sidebar-border: #1a3d24;
+  --th-text: #c4e8cc;
+  --th-text-secondary: #7ab88a;
+  --th-text-muted: #4a8a5a;
+  --th-input-bg: #16301e;
+  --th-input-border: #1a3d24;
+}
+
+/* Midnight */
+html[data-theme="midnight"] {
+  --th-surface: #f5f0ff;
+  --th-bg: #ddd4f0;
+  --th-border: #bba8d8;
+  --th-surface-hover: #ece4fb;
+  --th-accent: #7c3aed;
+  --th-accent-hover: #6d28d9;
+  --th-sidebar: #180c30;
+  --th-sidebar-border: transparent;
+  --th-text: #180c30;
+  --th-text-secondary: #5a3a8a;
+  --th-text-muted: #8a6abb;
+  --th-input-bg: #ffffff;
+  --th-input-border: #bba8d8;
+}
+html[data-theme="midnight"][data-dark] {
+  --th-surface: #130e20;
+  --th-bg: #0c0816;
+  --th-border: #2a1e48;
+  --th-surface-hover: #1e1535;
+  --th-accent: #a78bfa;
+  --th-accent-hover: #8b5cf6;
+  --th-sidebar: #08040e;
+  --th-sidebar-border: #2a1e48;
+  --th-text: #d4c4f0;
+  --th-text-secondary: #9a7ace;
+  --th-text-muted: #6a4a9a;
+  --th-input-bg: #1e1535;
+  --th-input-border: #2a1e48;
+}
+
+/* ── Global surface overrides (active for non-default themes) ──── */
+html[data-theme]:not([data-theme="default"]) .bg-white {
+  background-color: var(--th-surface) !important;
+}
+html[data-theme]:not([data-theme="default"]) .bg-gray-50 {
+  background-color: var(--th-surface) !important;
+}
+html[data-theme]:not([data-theme="default"]) .bg-gray-100 {
+  background-color: var(--th-bg) !important;
+}
+html[data-theme]:not([data-theme="default"]) .border-gray-200 {
+  border-color: var(--th-border) !important;
+}
+html[data-theme]:not([data-theme="default"]) .hover\:bg-gray-50:hover {
+  background-color: var(--th-surface-hover) !important;
+}
+html[data-theme]:not([data-theme="default"]) .hover\:bg-gray-100:hover {
+  background-color: var(--th-surface-hover) !important;
+}
+
+/* Dark mode surface overrides */
+html[data-theme]:not([data-theme="default"]) .dark .bg-gray-800 {
+  background-color: var(--th-surface) !important;
+}
+html[data-theme]:not([data-theme="default"]) .dark .bg-gray-900 {
+  background-color: var(--th-bg) !important;
+}
+html[data-theme]:not([data-theme="default"]) .dark .border-gray-700 {
+  border-color: var(--th-border) !important;
+}
+html[data-theme]:not([data-theme="default"]) .dark .hover\:bg-gray-700:hover {
+  background-color: var(--th-surface-hover) !important;
+}
+
+/* Icon sidebar override */
+html[data-theme]:not([data-theme="default"]) .bg-gray-800:not(.dark .bg-gray-800) {
+  background-color: var(--th-sidebar) !important;
+}
+html[data-theme]:not([data-theme="default"]) .dark .bg-gray-900.border-r {
+  background-color: var(--th-sidebar) !important;
+  border-color: var(--th-sidebar-border) !important;
+}
+
+/* Scrollbar theming */
+html[data-theme]:not([data-theme="default"]) ::-webkit-scrollbar-track {
+  background: var(--th-bg);
+}
+html[data-theme]:not([data-theme="default"]) ::-webkit-scrollbar-thumb {
+  background: var(--th-border);
+}
+html[data-theme]:not([data-theme="default"]) .dark ::-webkit-scrollbar-track {
+  background: var(--th-bg);
+}
+html[data-theme]:not([data-theme="default"]) .dark ::-webkit-scrollbar-thumb {
+  background: var(--th-border);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+.dark input[type="number"],
+.dark select {
+  color-scheme: dark;
+}
+
+.dark input[type="range"] {
+  color-scheme: dark;
+}
+
+.dark input[type="range"]::-webkit-slider-runnable-track {
+  background: #374151;
+  border-radius: 3px;
+}
+
+.dark input[type="range"]::-webkit-slider-thumb {
+  background: #60a5fa;
+}
+
+.dark input[type="range"]::-moz-range-track {
+  background: #374151;
+  border-radius: 3px;
+}
+
+.dark input[type="range"]::-moz-range-thumb {
+  background: #60a5fa;
+  border: none;
+}
+
+.dark input[type="number"]::-webkit-inner-spin-button,
+.dark input[type="number"]::-webkit-outer-spin-button {
+  filter: invert(0.8);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+  animation: rippleReveal 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes rippleReveal {
+  from {
+    clip-path: circle(0% at var(--ripple-x, 50%) var(--ripple-y, 0px));
+  }
+  to {
+    clip-path: circle(150% at var(--ripple-x, 50%) var(--ripple-y, 0px));
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   ⚡ LAZERCLAW LIGHTNING INTRO ANIMATIONS ⚡
+   Raiden would be proud. FINISH HIM!
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Lightning flash overlay */
+@keyframes lightningFlash {
+  0%, 100% { opacity: 0; }
+  5% { opacity: 1; }
+  10% { opacity: 0; }
+  15% { opacity: 0.8; }
+  20% { opacity: 0; }
+  25% { opacity: 0.6; }
+  30% { opacity: 0; }
+}
+
+/* Intense strobe for the big strike */
+@keyframes thunderStrike {
+  0% { opacity: 0; background: rgba(139,92,246,0.3); }
+  5% { opacity: 0.7; background: rgba(139,92,246,0.4); }
+  10% { opacity: 0; }
+  12% { opacity: 0.6; background: rgba(139,92,246,0.3); }
+  15% { opacity: 0; }
+  18% { opacity: 0.5; background: rgba(6,182,212,0.3); }
+  22% { opacity: 0; }
+  25% { opacity: 0.3; background: rgba(139,92,246,0.2); }
+  30% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* Logo materialize from energy */
+@keyframes logoMaterialize {
+  0% {
+    opacity: 0;
+    filter: blur(30px) brightness(3) saturate(0);
+    transform: scale(1.5) translateY(-20px);
+  }
+  30% {
+    opacity: 0.3;
+    filter: blur(15px) brightness(2.5) saturate(0.5);
+    transform: scale(1.2) translateY(-10px);
+  }
+  50% {
+    opacity: 0.7;
+    filter: blur(8px) brightness(2) saturate(0.8);
+    transform: scale(1.05);
+  }
+  70% {
+    opacity: 0.9;
+    filter: blur(2px) brightness(1.3) saturate(1);
+    transform: scale(0.98);
+  }
+  85% {
+    filter: blur(0) brightness(1.1) saturate(1.1);
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0) brightness(1) saturate(1);
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Electric crackle effect around logo */
+@keyframes electricCrackle {
+  0%, 100% {
+    text-shadow:
+      0 0 10px #8b5cf6,
+      0 0 20px #8b5cf6,
+      0 0 30px #06b6d4,
+      0 0 40px #06b6d4;
+    filter: drop-shadow(0 0 15px #8b5cf6) drop-shadow(0 0 30px #06b6d4);
+  }
+  25% {
+    text-shadow:
+      0 0 5px #fff,
+      0 0 15px #8b5cf6,
+      0 0 25px #06b6d4;
+    filter: drop-shadow(0 0 20px #fff) drop-shadow(0 0 40px #8b5cf6);
+  }
+  50% {
+    text-shadow:
+      0 0 15px #06b6d4,
+      0 0 30px #8b5cf6,
+      0 0 45px #06b6d4;
+    filter: drop-shadow(0 0 25px #06b6d4) drop-shadow(0 0 50px #8b5cf6);
+  }
+  75% {
+    text-shadow:
+      0 0 8px #fff,
+      0 0 20px #06b6d4,
+      0 0 35px #8b5cf6;
+    filter: drop-shadow(0 0 15px #fff) drop-shadow(0 0 35px #06b6d4);
+  }
+}
+
+/* Screen shake on thunder */
+@keyframes thunderShake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-3px, -2px); }
+  20% { transform: translate(3px, 1px); }
+  30% { transform: translate(-2px, 2px); }
+  40% { transform: translate(2px, -1px); }
+  50% { transform: translate(-1px, 1px); }
+  60% { transform: translate(1px, -1px); }
+  70% { transform: translate(-1px, 0); }
+  80% { transform: translate(1px, 0); }
+  90% { transform: translate(0, 1px); }
+}
+
+/* Lightning bolt strike animation */
+@keyframes boltStrike {
+  0% {
+    opacity: 0;
+    transform: translateY(-100vh) scaleY(0.3);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+  30% {
+    opacity: 0.8;
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    opacity: 0;
+    transform: translateY(0) scaleY(1);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Logo exit - lightning out */
+@keyframes lightningOut {
+  0% {
+    opacity: 1;
+    filter: blur(0) brightness(1);
+    transform: scale(1);
+  }
+  20% {
+    filter: brightness(2) saturate(1.5);
+    transform: scale(1.05);
+  }
+  40% {
+    opacity: 1;
+    filter: blur(5px) brightness(3) saturate(0.5);
+    transform: scale(1.1);
+  }
+  60% {
+    opacity: 0.8;
+    filter: blur(15px) brightness(4) saturate(0);
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(30px) brightness(5) saturate(0);
+    transform: scale(1.5) translateY(-30px);
+  }
+}
+
+/* Energy pulse rings */
+@keyframes energyPulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.8;
+    border-width: 4px;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+/* Particle scatter */
+@keyframes particleScatter {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--px, 100px), var(--py, -100px)) scale(0);
+  }
+}
+
+/* Background energy swirl */
+@keyframes energySwirl {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes cloudDrift {
+  0% { transform: translateX(0) scale(1); opacity: 0.7; }
+  25% { transform: translateX(2%) scale(1.02); opacity: 0.85; }
+  50% { transform: translateX(-1%) scale(1.04); opacity: 0.75; }
+  75% { transform: translateX(1.5%) scale(1.01); opacity: 0.9; }
+  100% { transform: translateX(0) scale(1); opacity: 0.7; }
+}
+
+/* Glow pulse for intro background */
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 100px rgba(139, 92, 246, 0.1),
+      inset 0 0 200px rgba(6, 182, 212, 0.05);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 150px rgba(139, 92, 246, 0.2),
+      inset 0 0 300px rgba(6, 182, 212, 0.1);
+  }
+}
+
+/* Scanline effect */
+@keyframes scanlines {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 4px; }
+}
+
+/* Intro container styles */
+.lazerclaw-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+  animation: glowPulse 2s ease-in-out infinite;
+  overflow: hidden;
+}
+
+.lazerclaw-intro::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(139, 92, 246, 0.03) 2px,
+    rgba(139, 92, 246, 0.03) 4px
+  );
+  animation: scanlines 0.1s linear infinite;
+  pointer-events: none;
+}
+
+.lightning-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: thunderStrike 0.6s ease-out;
+}
+
+.intro-logo {
+  max-width: 60vw;
+  max-height: 50vh;
+  animation: logoMaterialize 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+             electricCrackle 0.15s ease-in-out infinite;
+}
+
+.intro-logo.exiting {
+  animation: logoGlitchOut 0.5s ease-in forwards;
+}
+
+@keyframes logoGlitchOut {
+  0% { opacity: 1; filter: none; transform: scale(1) skewX(0); clip-path: inset(0 0 0 0); }
+  10% { opacity: 0.8; filter: blur(1px) brightness(1.3); transform: scale(1.01) skewX(-1deg); clip-path: inset(40% 0 20% 0); }
+  20% { opacity: 1; transform: scale(1) skewX(2deg); clip-path: inset(0 0 0 0); }
+  30% { opacity: 0.5; filter: blur(2px) brightness(1.5); transform: scale(1.03) skewX(-3deg); clip-path: inset(20% 0 50% 0); }
+  45% { opacity: 0.8; transform: scale(1.05) skewX(4deg); clip-path: inset(0 0 60% 0); }
+  55% { opacity: 0.3; filter: blur(4px) brightness(1.8); transform: scale(1.08) skewX(-5deg); clip-path: inset(60% 0 0 0); }
+  70% { opacity: 0.5; transform: scale(1.1) skewX(6deg); clip-path: inset(0 0 80% 0); }
+  85% { opacity: 0.1; filter: blur(8px) brightness(2); transform: scale(1.15) skewX(-4deg); clip-path: inset(80% 0 10% 0); }
+  100% { opacity: 0; filter: blur(12px) brightness(2.5); transform: scale(1.2) skewX(0); clip-path: inset(0 0 100% 0); }
+}
+
+.intro-shake {
+  animation: thunderShake 0.4s ease-out;
+}
+
+.energy-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 3px solid;
+  border-color: rgba(139, 92, 246, 0.6);
+  animation: energyPulse 1s ease-out forwards;
+  pointer-events: none;
+}
+
+.lightning-bolt {
+  position: absolute;
+  width: 4px;
+  background: linear-gradient(180deg, transparent, #8b5cf6, #06b6d4, #fff, #06b6d4, #8b5cf6, transparent);
+  animation: boltStrike 0.5s ease-out forwards;
+  filter: drop-shadow(0 0 10px #8b5cf6) drop-shadow(0 0 20px #06b6d4);
+}
+
+/* Intro fade out overlay */
+.intro-fadeout {
+  animation: fadeOutIntro 0.5s ease-out forwards;
+}
+
+@keyframes fadeOutIntro {
+  0% { opacity: 1; }
+  100% { opacity: 0; visibility: hidden; }
+}
+
+/* Logo glitch-in on welcome page after intro */
+@keyframes logoGlitchIn {
+  0% { opacity: 0; filter: blur(8px) brightness(2); transform: scale(1.1) skewX(5deg); clip-path: inset(0 0 100% 0); }
+  8% { opacity: 1; filter: blur(4px) brightness(1.8); transform: scale(1.05) skewX(-3deg); clip-path: inset(0 0 40% 0); }
+  12% { opacity: 0.3; filter: blur(0) brightness(1); transform: scale(1) skewX(4deg); clip-path: inset(30% 0 20% 0); }
+  18% { opacity: 1; filter: blur(2px) brightness(1.5); transform: scale(1.02) skewX(-2deg); clip-path: inset(0 0 0 0); }
+  22% { opacity: 0.5; filter: blur(0) brightness(1); transform: scale(1) skewX(1deg); clip-path: inset(10% 0 60% 0); }
+  30% { opacity: 1; filter: blur(1px) brightness(1.2); transform: scale(1.01) skewX(-0.5deg); clip-path: inset(0 0 0 0); }
+  35% { opacity: 0.8; transform: scale(1) skewX(0.3deg); clip-path: inset(50% 0 30% 0); }
+  42% { opacity: 1; filter: blur(0) brightness(1); transform: scale(1) skewX(0); clip-path: inset(0 0 0 0); }
+  100% { opacity: 1; filter: none; transform: scale(1) skewX(0); clip-path: inset(0 0 0 0); }
+}
+
+/* Pulse animation for loading states */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.02);
+  }
+}
+
+/* Music button electric blue pulse */
+@keyframes musicPulse {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(100,160,255,0.5), inset 0 0 8px rgba(100,160,255,0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(100,160,255,0.8), 0 0 30px rgba(130,190,255,0.4), inset 0 0 12px rgba(100,160,255,0.3);
+  }
+}
+
+/* Fade slide up for form entrance */
+@keyframes fadeSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   ⚡ LASER BEAM EFFECTS ⚡
+   Making that raptor's laser absolutely CRACKLE with energy!
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Laser core pulse */
+@keyframes laserPulse {
+  0% {
+    opacity: 0.6;
+    transform: rotate(-2deg) scaleY(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-2deg) scaleY(1.2);
+  }
+}
+
+/* Electric arc flickers - different timings for organic feel */
+@keyframes arcFlicker1 {
+  0%, 100% {
+    opacity: 0.4;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes arcFlicker2 {
+  0%, 100% {
+    opacity: 0.6;
+    transform: translateY(1px);
+  }
+  50% {
+    opacity: 0.3;
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes arcFlicker3 {
+  0%, 100% {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(2px);
+  }
+}
+
+/* Spark particles floating */
+@keyframes sparkFloat {
+  0% {
+    opacity: 0.5;
+    transform: translateY(0) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.2);
+  }
+}
+
+/* Electric discharge at source */
+@keyframes electricDischarge {
+  0%, 100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  75% {
+    opacity: 0.9;
+    transform: scale(1.1);
+  }
+}
+
+/* Laser tip flare */
+@keyframes laserTipFlare {
+  0% {
+    opacity: 0.6;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   ⚡ LAZERCLAW GLOBAL ENERGY EFFECTS ⚡
+   Making everything feel electric and alive!
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Accent button glow effect */
+.lazerclaw-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.lazerclaw-btn::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, #8b5cf6, #06b6d4, #8b5cf6);
+  background-size: 200% 200%;
+  border-radius: inherit;
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+  animation: energySwirl 3s ease-in-out infinite;
+}
+
+.lazerclaw-btn:hover::before {
+  opacity: 0.5;
+}
+
+/* Toolbar logo hover glow */
+.toolbar-logo {
+  transition: all 0.3s ease;
+}
+
+.toolbar-logo:hover {
+  filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.6)) drop-shadow(0 0 20px rgba(6, 182, 212, 0.4)) !important;
+  transform: scale(1.05);
+}
+
+/* Electric focus ring for inputs */
+.electric-focus:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15), 0 0 15px rgba(139, 92, 246, 0.2) !important;
+}
+
+/* Energized link/button hover */
+.energized:hover {
+  color: #8b5cf6 !important;
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   💎 DIAMOND SPARKLE EFFECTS - Heavy Metal Monochrome Light Mode
+   Like Swarovski crystals catching sunlight - subtle rainbow microinteractions
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Diamond sparkle sweep animation */
+@keyframes diamondSparkle {
+  0% {
+    background-position: -200% center;
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    background-position: 200% center;
+    opacity: 0;
+  }
+}
+
+@keyframes diamondShimmer {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.8) rotate(0deg);
+  }
+  10%, 90% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2) rotate(180deg);
+  }
+}
+
+@keyframes prismFlash {
+  0%, 100% {
+    box-shadow:
+      0 0 0 rgba(255,100,100,0),
+      0 0 0 rgba(100,255,100,0),
+      0 0 0 rgba(100,100,255,0);
+  }
+  25% {
+    box-shadow:
+      -2px -2px 6px rgba(255,100,100,0.3),
+      0 0 0 rgba(100,255,100,0),
+      2px 2px 6px rgba(100,100,255,0.3);
+  }
+  50% {
+    box-shadow:
+      2px -2px 8px rgba(255,200,100,0.4),
+      -2px 2px 8px rgba(100,255,200,0.4),
+      0 0 12px rgba(200,100,255,0.3);
+  }
+  75% {
+    box-shadow:
+      0 0 0 rgba(255,100,100,0),
+      -3px 0 6px rgba(100,200,255,0.3),
+      3px 0 6px rgba(255,100,200,0.3);
+  }
+}
+
+/* Apply to light mode only - buttons get subtle sparkle on hover */
+html:not([data-dark]) button:hover,
+html:not([data-dark]) .tb-btn:hover {
+  position: relative;
+}
+
+html:not([data-dark]) button:hover::after,
+html:not([data-dark]) .tb-btn:hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,50,50,0.08) 15%,
+    rgba(255,200,50,0.1) 25%,
+    rgba(50,255,50,0.1) 35%,
+    rgba(50,200,255,0.1) 50%,
+    rgba(150,50,255,0.1) 65%,
+    rgba(255,50,150,0.08) 85%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: diamondSparkle 1.5s ease-in-out;
+  border-radius: inherit;
+}
+
+/* Diamond shimmer on interactive elements - light mode */
+html:not([data-dark]) input:focus,
+html:not([data-dark]) select:focus,
+html:not([data-dark]) textarea:focus {
+  animation: prismFlash 2s ease-in-out infinite;
+}
+
+/* Toolbar gets metallic sheen in light mode */
+html:not([data-dark]) .toolbar-wrapper {
+  background: linear-gradient(
+    180deg,
+    #fafafa 0%,
+    #f4f4f5 50%,
+    #e4e4e7 100%
+  );
+  border-bottom: 1px solid #d4d4d8;
+  box-shadow:
+    0 1px 3px rgba(0,0,0,0.05),
+    inset 0 1px 0 rgba(255,255,255,0.8);
+}
+
+/* Sparkle accent for active states */
+html:not([data-dark]) .active-sparkle {
+  position: relative;
+  overflow: hidden;
+}
+
+html:not([data-dark]) .active-sparkle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background: white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow:
+    0 0 4px #fff,
+    0 0 8px rgba(255,100,100,0.5),
+    0 0 12px rgba(100,255,100,0.5),
+    0 0 16px rgba(100,100,255,0.5);
+  animation: diamondShimmer 3s ease-in-out infinite;
+}
+
+/* Chrome/metallic scrollbar in light mode */
+html:not([data-dark]) ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html:not([data-dark]) ::-webkit-scrollbar-track {
+  background: linear-gradient(90deg, #e4e4e7, #f4f4f5, #e4e4e7);
+}
+
+html:not([data-dark]) ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #a1a1aa, #71717a, #a1a1aa);
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+html:not([data-dark]) ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #71717a, #52525b, #71717a);
+}
+
+/* Random sparkle micro-interactions on panel edges */
+html:not([data-dark]) .panel-sparkle {
+  position: relative;
+}
+
+html:not([data-dark]) .panel-sparkle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255,100,100,0.2) 10%,
+    transparent 20%,
+    rgba(100,255,200,0.2) 40%,
+    transparent 50%,
+    rgba(100,150,255,0.2) 70%,
+    transparent 80%,
+    rgba(255,100,200,0.2) 95%,
+    transparent 100%
+  );
+  animation: diamondSparkle 4s ease-in-out infinite;
+  pointer-events: none;
+}
