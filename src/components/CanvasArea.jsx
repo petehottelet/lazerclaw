@@ -449,6 +449,42 @@ export default function CanvasArea({ canvasState }) {
   const showTokenLabelsRef = useRef(false)
   const mousePosRef = useRef({ x: -9999, y: -9999 })
   const animFrameRef = useRef(null)
+  const pinchRef = useRef(null)
+
+  // Pinch-to-zoom for mobile
+  useEffect(() => {
+    const el = outerRef.current
+    if (!el) return
+    const getDistance = (t) => {
+      const dx = t[0].clientX - t[1].clientX
+      const dy = t[0].clientY - t[1].clientY
+      return Math.sqrt(dx * dx + dy * dy)
+    }
+    const onTouchStart = (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault()
+        pinchRef.current = { dist: getDistance(e.touches), zoom: canvasState.zoom }
+      }
+    }
+    const onTouchMove = (e) => {
+      if (e.touches.length === 2 && pinchRef.current) {
+        e.preventDefault()
+        const newDist = getDistance(e.touches)
+        const scale = newDist / pinchRef.current.dist
+        const newZoom = Math.min(4, Math.max(0.1, +(pinchRef.current.zoom * scale).toFixed(2)))
+        canvasState.setZoom(newZoom)
+      }
+    }
+    const onTouchEnd = () => { pinchRef.current = null }
+    el.addEventListener('touchstart', onTouchStart, { passive: false })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    el.addEventListener('touchend', onTouchEnd)
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [canvasState.zoom, canvasState.setZoom])
 
   const activeToolRef = useRef('select')
   const cropModeRef = useRef(null)

@@ -1038,6 +1038,34 @@ html[data-theme]:not([data-theme="default"]) .dark ::-webkit-scrollbar-thumb {
   100% { transform: translateX(120%); }
 }
 
+/* ── Mobile responsive overrides ────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Panels inside bottom sheets should be full-width, not fixed w-64 */
+  .w-64 {
+    width: 100% !important;
+  }
+  /* Remove left border from panels in sheets */
+  .border-r {
+    border-right: none !important;
+  }
+  /* Safe area for bottom nav on notched phones */
+  .mobile-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Thin scrollbars on mobile */
+  ::-webkit-scrollbar {
+    width: 2px;
+  }
+  /* Prevent text selection interfering with canvas drag */
+  .upper-canvas, .lower-canvas {
+    touch-action: none;
+  }
+  /* Canvas area: allow pan & zoom gestures */
+  .canvas-container {
+    touch-action: none !important;
+  }
+}
+
 /* Apply to light mode only - buttons get subtle sparkle on hover */
 html:not([data-dark]) button:hover,
 html:not([data-dark]) .tb-btn:hover {

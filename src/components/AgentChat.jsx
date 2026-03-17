@@ -1016,9 +1016,10 @@ export default function AgentChat({ canvasState }) {
   const inputRef = useRef(null)
   const fileInputRef = useRef(null)
 
-  const ORB_SIZE = 120
-  const DEFAULT_RIGHT = 20
-  const DEFAULT_BOTTOM = 20
+  const isMobileView = window.innerWidth < 768
+  const ORB_SIZE = isMobileView ? 72 : 120
+  const DEFAULT_RIGHT = isMobileView ? 8 : 20
+  const DEFAULT_BOTTOM = isMobileView ? 68 : 20
   const SNAP_RADIUS = 100
 
   const getDefaultOrbPos = useCallback(() => ({
@@ -1914,7 +1915,8 @@ export default function AgentChat({ canvasState }) {
       <BloodRain active={bloodRain} />
 
       {isOpen && (() => {
-        const chatW = 380, chatH = 560
+        const chatW = isMobileView ? Math.min(340, window.innerWidth - 16) : 380
+        const chatH = isMobileView ? Math.min(440, window.innerHeight - 140) : 560
         const isDark = canvasState.darkMode
         let chatStyle = { height: chatH, maxHeight: 'calc(100vh - 80px)', zIndex: 10000, animation: 'agentLightningArrive 0.75s cubic-bezier(0.25, 0.46, 0.45, 0.94)', transformOrigin: 'bottom center', border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(14,165,233,0.2)', background: isDark ? '#0f172a' : '#f8fdff' }
         let computedLeft, computedTop

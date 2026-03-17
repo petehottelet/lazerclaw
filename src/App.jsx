@@ -11,7 +11,11 @@ import CanvasArea from './components/CanvasArea'
 import RightSidebar from './components/RightSidebar'
 import AgentChat from './components/AgentChat'
 import FloatingPenToolbar from './components/FloatingPenToolbar'
+import DownloadButton from './components/DownloadButton'
+import { MobileHeader, MobileBottomNav, MobileBottomSheet, MobilePropertiesBar, MorePanelContent } from './components/MobileUI'
+import { Textbox } from 'fabric'
 import { useCanvasState } from './hooks/useCanvasState'
+import { useIsMobile } from './hooks/useIsMobile'
 
 const ZOOM_PRESETS = [
   { label: '25%',  value: 0.25 },
@@ -196,12 +200,42 @@ export default function App() {
     }
   }, [setDarkMode])
 
+  const isMobile = useIsMobile()
   const [activePanel, setActivePanel] = useState(null)
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true)
+  const [mobileTab, setMobileTab] = useState(null)
+  const [mobileSubSheet, setMobileSubSheet] = useState(null)
 
   const handleSelectPanel = (panelId) => {
     setActivePanel(panelId)
   }
+
+  const handleMobileAddText = useCallback(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    saveUndoState()
+    const text = new Textbox('Type here', {
+      left: 100, top: 100, width: 200, fontSize: 24,
+      fontFamily: 'Inter', fill: '#000000',
+    })
+    canvas.add(text)
+    canvas.setActiveObject(text)
+    canvas.requestRenderAll()
+    refreshObjects()
+  }, [canvasRef, saveUndoState, refreshObjects])
+
+  const handleMobileMoreAction = useCallback((actionId) => {
+    if (actionId === 'icons' || actionId === 'lobsters') {
+      setMobileTab(null)
+      setMobileSubSheet(actionId)
+    } else if (actionId === 'download') {
+      setMobileTab(null)
+      setMobileSubSheet('download')
+    } else if (actionId === 'canvas-size') {
+      setMobileTab(null)
+      setMobileSubSheet('canvas-size')
+    }
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -359,6 +393,96 @@ export default function App() {
     bringForward, sendBackward, setZoom, setActiveTool,
   ])
 
+  // ── Mobile layout ──────────────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <div className={`h-screen w-screen flex flex-col select-none overflow-hidden ${darkMode ? 'dark bg-gray-900' : 'bg-gray-100'}`}>
+        <MobileHeader canvasState={canvasState} onToggleDarkMode={toggleDarkMode} />
+
+        {/* Canvas fills available space */}
+        <div className="flex-1 overflow-hidden relative">
+          <CanvasArea canvasState={canvasState} />
+        </div>
+
+        {/* Properties bar shows when object selected */}
+        <MobilePropertiesBar canvasState={canvasState} darkMode={darkMode} />
+
+        {/* Bottom navigation */}
+        <MobileBottomNav
+          activeTab={mobileTab}
+          onTabChange={setMobileTab}
+          activeTool={activeTool}
+          darkMode={darkMode}
+          onAddText={handleMobileAddText}
+          canvasState={canvasState}
+        />
+
+        {/* Slide-up panels */}
+        <MobileBottomSheet
+          isOpen={mobileTab === 'images'}
+          onClose={() => setMobileTab(null)}
+          title="Shapes"
+          darkMode={darkMode}
+        >
+          <ShapesPanel canvasState={canvasState} />
+        </MobileBottomSheet>
+
+        <MobileBottomSheet
+          isOpen={mobileTab === 'layers'}
+          onClose={() => setMobileTab(null)}
+          title="Layers"
+          darkMode={darkMode}
+        >
+          <LayersPanel canvasState={canvasState} />
+        </MobileBottomSheet>
+
+        <MobileBottomSheet
+          isOpen={mobileTab === 'more'}
+          onClose={() => setMobileTab(null)}
+          title="More Tools"
+          darkMode={darkMode}
+          height="45vh"
+        >
+          <MorePanelContent canvasState={canvasState} darkMode={darkMode} onAction={handleMobileMoreAction} />
+        </MobileBottomSheet>
+
+        {/* Sub-sheets from More menu */}
+        <MobileBottomSheet
+          isOpen={mobileSubSheet === 'icons'}
+          onClose={() => setMobileSubSheet(null)}
+          title="Icons"
+          darkMode={darkMode}
+        >
+          <IconsPanel canvasState={canvasState} />
+        </MobileBottomSheet>
+
+        <MobileBottomSheet
+          isOpen={mobileSubSheet === 'lobsters'}
+          onClose={() => setMobileSubSheet(null)}
+          title="Lobsters"
+          darkMode={darkMode}
+        >
+          <LobstersPanel canvasState={canvasState} />
+        </MobileBottomSheet>
+
+        <MobileBottomSheet
+          isOpen={mobileSubSheet === 'download'}
+          onClose={() => setMobileSubSheet(null)}
+          title="Download"
+          darkMode={darkMode}
+          height="35vh"
+        >
+          <div className="p-4 flex flex-col gap-3">
+            <DownloadButton canvasState={canvasState} collapse={0} />
+          </div>
+        </MobileBottomSheet>
+
+        <AgentChat canvasState={canvasState} />
+      </div>
+    )
+  }
+
+  // ── Desktop layout (unchanged) ────────────────────────────────────────
   return (
     <div className={`h-screen w-screen flex flex-col select-none overflow-hidden ${darkMode ? 'dark bg-gray-900' : 'bg-gray-100'}`}>
       <Toolbar canvasState={canvasState} onToggleDarkMode={toggleDarkMode} />
