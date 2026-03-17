@@ -1,11 +1,15 @@
 import { jwtVerify } from 'jose'
 import { getUserByEmail, checkIP, sanitize, getRequestIP } from './_db.js'
 
-const SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'dtool-dev-secret-change-me')
+const SECRET = process.env.JWT_SECRET ? new TextEncoder().encode(process.env.JWT_SECRET) : null
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  if (!SECRET) {
+    return res.status(500).json({ error: 'Server configuration error' })
   }
 
   const cookies = parseCookies(req.headers.cookie || '')

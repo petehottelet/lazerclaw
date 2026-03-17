@@ -82,10 +82,18 @@ AVAILABLE FONTS:
 ${AVAILABLE_FONTS.map(f => `  - "${f}"`).join('\n')}`
 }
 
-export function buildAgentSystemPrompt(canvasState) {
+export function buildAgentSystemPrompt(canvasState, { canvasW = 500, canvasH = 700 } = {}) {
   const canvasInfo = canvasState
     ? `\n\nCurrent canvas objects:\n${JSON.stringify(canvasState, null, 2)}`
     : ''
+
+  const templateVars = {
+    CANVAS_WIDTH: String(canvasW),
+    CANVAS_HEIGHT: String(canvasH),
+    SAFE_ZONE_INSET: String(Math.round(Math.min(canvasW, canvasH) * 0.05)),
+    BLEED_WIDTH: String(Math.round(Math.min(canvasW, canvasH) * 0.02)),
+    TARGET_PPI: '300',
+  }
 
   const identity = getSection('Identity')
   const designProcess = getSection('Design Process')
@@ -97,7 +105,7 @@ export function buildAgentSystemPrompt(canvasState) {
   const colorSystem = getSection('Color System')
   const additionalCapabilities = getSection('Additional Capabilities')
 
-  return `${identity}
+  let prompt = `${identity}
 
 ${designProcess}
 
@@ -117,12 +125,18 @@ ${colorSystem}
 
 ${additionalCapabilities}
 ${canvasInfo}`
+
+  for (const [key, val] of Object.entries(templateVars)) {
+    prompt = prompt.replaceAll(`{{${key}}}`, val)
+  }
+  return prompt
 }
 
 export function serializeCanvasForAgent(canvas) {
   if (!canvas) return []
   return canvas.getObjects()
     .filter(o => !o._dtoolTileClone && !o._dtoolTilePatternRect)
+    .slice(0, 100)
     .map(o => {
       const entry = {
         id: o._dtoolId,

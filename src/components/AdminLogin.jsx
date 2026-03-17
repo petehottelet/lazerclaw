@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
 
-// Admin credentials loaded from environment variables
-const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || ''
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || ''
-
 // ─── REALISTIC LIGHTNING BOLT GENERATION ───────────────────────────────────
 function generateBolt(x1, y1, x2, y2, detail = 5) {
   let pts = [{ x: x1, y: y1 }, { x: x2, y: y2 }]
@@ -140,14 +136,33 @@ export default function AdminLogin({ onAuth }) {
     }
   }, [])
 
-  const submit = (e) => {
+  const [submitting, setSubmitting] = useState(false)
+
+  const submit = async (e) => {
     e.preventDefault()
     setError('')
-
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include',
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Login failed')
+        return
+      }
+      if (!data.user?.isAdmin) {
+        setError('Admin access required')
+        return
+      }
       onAuth()
-    } else {
-      setError('Invalid credentials')
+    } catch {
+      setError('Connection error. Please try again.')
+    } finally {
+      setSubmitting(false)
     }
   }
 

@@ -27,6 +27,11 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Image URL too long' })
     }
 
+    const ALLOWED_ACTIONS = ['generate', 'edit', 'removeBackground', 'restore', 'colorize', 'removeRedeye']
+    if (!ALLOWED_ACTIONS.includes(action)) {
+      return res.status(400).json({ error: `Unknown action: ${String(action).slice(0, 50)}` })
+    }
+
     if (action === 'generate') {
       const response = await fetch('https://api.nanobananaapi.dev/v1/images/generate', {
         method: 'POST',
@@ -221,7 +226,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ urls })
     }
 
-    return res.status(400).json({ error: `Unknown action: ${action}` })
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }

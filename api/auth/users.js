@@ -3,7 +3,7 @@ import {
   getUsers, createUser, updateUser, resetPassword, deleteUser, sanitize, getRequestIP,
 } from './_db.js'
 
-const SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'dtool-dev-secret-change-me')
+const SECRET = process.env.JWT_SECRET ? new TextEncoder().encode(process.env.JWT_SECRET) : null
 
 const STUDIO_BASE = process.env.STUDIO_BASE_URL || ''
 const STUDIO_ADMIN_KEY = process.env.STUDIO_ADMIN_KEY || ''
@@ -25,6 +25,8 @@ async function syncToStudio(method, body) {
 }
 
 async function requireAdmin(req, res) {
+  if (!SECRET) { res.status(500).json({ error: 'Server configuration error' }); return null }
+
   const cookies = parseCookies(req.headers.cookie || '')
   const token = cookies.dtool_token
   if (!token) { res.status(401).json({ error: 'Not authenticated' }); return null }

@@ -1,11 +1,15 @@
 import { SignJWT } from 'jose'
 import { verifyPassword, checkIP, sanitize, getRequestIP } from './_db.js'
 
-const SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'dtool-dev-secret-change-me')
+const SECRET = process.env.JWT_SECRET ? new TextEncoder().encode(process.env.JWT_SECRET) : null
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  if (!SECRET) {
+    return res.status(500).json({ error: 'Server configuration error' })
   }
 
   const { email, password } = req.body || {}
@@ -17,7 +21,7 @@ export default async function handler(req, res) {
 
   const user = await verifyPassword(email, password)
   if (!user) {
-    return res.status(401).json({ error: 'Invalid email or password', ip })
+    return res.status(401).json({ error: 'Invalid email or password' })
   }
 
   if (!checkIP(user, ip)) {

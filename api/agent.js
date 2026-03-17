@@ -14,6 +14,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing system prompt or messages array' })
     }
 
+    if (messages.length > 50) {
+      return res.status(400).json({ error: 'Too many messages in conversation' })
+    }
+    if (system.length > 50000) {
+      return res.status(400).json({ error: 'System prompt too large' })
+    }
+    if (referenceImages && referenceImages.length > 5) {
+      return res.status(400).json({ error: 'Too many reference images' })
+    }
+
     const anthropicMessages = messages.map(m => {
       if (m.role === 'user' && (m.snapshot || m.images)) {
         const content = []
@@ -84,8 +94,8 @@ export default async function handler(req, res) {
     }
 
     if (!response.ok) {
-      const errText = await response.text()
-      return res.status(response.status).json({ error: errText })
+      console.error('Anthropic API error:', response.status, await response.text().catch(() => ''))
+      return res.status(502).json({ error: 'AI service temporarily unavailable' })
     }
 
     const data = await response.json()

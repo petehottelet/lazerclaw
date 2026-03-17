@@ -966,9 +966,11 @@ export default function AgentChat({ canvasState }) {
 
   const extractImagePrompt = useCallback((text) => {
     const t = text.trim()
+    const imageNouns = 'image|picture|photo|illustration|artwork|graphic|icon|pic|portrait|wallpaper|poster|banner|logo|thumbnail'
+    const verbs = 'generate|create|make|draw|paint|render|produce|design'
     const patterns = [
-      /^(?:generate|create|make|draw|paint|render|produce)\s+(?:me\s+)?(?:an?\s+)?(?:image|picture|photo|illustration|artwork|graphic|icon|pic)\s+(?:of\s+)?(.+)/i,
-      /^(?:generate|create|make|draw|paint|render|produce)\s+(.+)/i,
+      new RegExp(`^(?:please\\s+)?(?:can you\\s+)?(?:${verbs})\\s+(?:me\\s+)?(?:an?\\s+)?(?:${imageNouns})\\s+(?:of\\s+|with\\s+|showing\\s+|featuring\\s+)?(.+)`, 'i'),
+      new RegExp(`^(?:please\\s+)?(?:can you\\s+)?(?:i\\s+(?:want|need)\\s+)?(?:an?\\s+)?(?:${imageNouns})\\s+(?:of\\s+|with\\s+|showing\\s+|featuring\\s+)(.+)`, 'i'),
     ]
     for (const p of patterns) {
       const m = t.match(p)
@@ -1020,7 +1022,10 @@ export default function AgentChat({ canvasState }) {
       }
 
       const canvasObjects = serializeCanvasForAgent(canvas)
-      const systemPrompt = buildAgentSystemPrompt(canvasObjects)
+      const systemPrompt = buildAgentSystemPrompt(canvasObjects, {
+        canvasW: canvasState.canvasW || 500,
+        canvasH: canvasState.canvasH || 700,
+      })
       const snapshot = includeSnapshot ? takeSnapshot() : null
 
       const conversationMessages = [...messages.filter(m => m.role !== 'system'), userMessage].map(m => ({
@@ -1048,7 +1053,7 @@ export default function AgentChat({ canvasState }) {
             const data = await generateImageApi({
               prompt: action.prompt || '',
               aspectRatio: action.aspectRatio || '1:1',
-              addMetal: true,
+              addMetal: false,
             })
             const url = data.urls?.[0]
             if (url) {
@@ -1153,7 +1158,11 @@ export default function AgentChat({ canvasState }) {
     const canvas = canvasState.canvasRef.current
     if (!canvas || !preview?.url || preview.added) return
     canvasState.saveUndoState()
-    addImageFromUrlToCanvas(canvas, preview.url, preview.action, canvasState).then(() => {
+    addImageFromUrlToCanvas(canvas, preview.url, preview.action, canvasState).then((result) => {
+      if (result?.error) {
+        setMessages(prev => [...prev, { role: 'assistant', content: `Failed to add image to canvas: ${result.error}` }])
+        return
+      }
       setMessages(prev => prev.map(msg => {
         if (!msg.imagePreviews) return msg
         const next = msg.imagePreviews.map(p => p.id === preview.id ? { ...p, added: true } : p)

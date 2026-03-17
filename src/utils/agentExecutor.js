@@ -211,11 +211,11 @@ function removeOffCanvasObjects(canvas, canvasW = 500, canvasH = 700) {
 }
 
 function validateLayout(canvas, canvasW = 500, canvasH = 700) {
-  const objs = canvas.getObjects().filter(o => !o._dtoolTileClone && !o._dtoolBgLayer)
+  const allObjects = canvas.getObjects()
+  const filtered = allObjects.filter(o => !o._dtoolTileClone && !o._dtoolBgLayer)
   let fixes = 0
 
-  for (const obj of canvas.getObjects()) {
-    if (obj._dtoolTileClone) continue
+  for (const obj of filtered) {
     try {
       const bound = obj.getBoundingRect(true)
       const visW = Math.min(bound.left + bound.width, canvasW) - Math.max(bound.left, 0)
@@ -233,8 +233,8 @@ function validateLayout(canvas, canvasW = 500, canvasH = 700) {
   }
 
   const isText = (o) => ['textbox', 'i-text', 'text'].includes((o.type || '').toLowerCase())
-  const texts = canvas.getObjects().filter(o => isText(o) && !o._dtoolTileClone)
-  const images = canvas.getObjects().filter(o => (o.type || '').toLowerCase() === 'image' && !o._dtoolTileClone && !o._dtoolBgLayer)
+  const texts = filtered.filter(o => isText(o))
+  const images = filtered.filter(o => (o.type || '').toLowerCase() === 'image')
 
   for (const txt of texts) {
     try {
@@ -306,7 +306,8 @@ export async function executeActions(canvas, actions, canvasState) {
         default:
           result = { error: `Unknown action: ${action.type}` }
       }
-      results.push({ action: action.type, success: true, result })
+      const succeeded = result !== null && result !== false && !result?.error
+      results.push({ action: action.type, success: succeeded, result })
     } catch (err) {
       results.push({ action: action.type, success: false, error: err.message })
     }
@@ -338,8 +339,8 @@ export function addImageFromUrlToCanvas(canvas, imageUrl, action, canvasState = 
       fImg.set({
         scaleX: scale,
         scaleY: scale,
-        left: (action && action.left) ?? 80 + Math.random() * 60,
-        top: (action && action.top) ?? 80 + Math.random() * 60,
+        left: action?.left ?? (80 + Math.random() * 60),
+        top: action?.top ?? (80 + Math.random() * 60),
       })
       canvas.add(fImg)
       canvas.setActiveObject(fImg)
@@ -357,7 +358,7 @@ async function executeGenerateImage(canvas, action, canvasState) {
   const data = await generateImage({
     prompt: action.prompt || '',
     aspectRatio: action.aspectRatio || '1:1',
-    addMetal: true,
+    addMetal: false,
   })
   const url = data.urls?.[0]
   if (!url) return { error: 'No image URL returned' }
