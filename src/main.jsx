@@ -225,7 +225,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
       const [from, to] = pickPair()
       const pts = generateBolt(from.x * W, from.y * H, to.x * W, to.y * H, 4)
       const flashDur = 0.04 + Math.random() * 0.06
-      activeBolts.push({ pts, life: 1.0, phase: 'flash', flashTimer: flashDur, fadeRate: 0.03 + Math.random() * 0.02, from, to, W, H })
+      activeBolts.push({ pts, life: 1.0, phase: 'flash', flashTimer: flashDur, fadeRate: 2.5 + Math.random() * 1.5, from, to, W, H })
     }
 
     let lastTime = performance.now()
@@ -310,10 +310,11 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
             b.pts = generateBolt(b.from.x * W, b.from.y * H, b.to.x * W, b.to.y * H, 4)
           }
         } else {
-          b.life -= b.fadeRate
+          b.life -= b.fadeRate * dt
           if (b.life <= 0) { activeBolts.splice(i, 1); continue }
         }
       }
+      if (activeBolts.length > 6) activeBolts.splice(0, activeBolts.length - 6)
 
       drawBolts(ctx1, W, H)
       drawBolts(ctx2, W, H)
@@ -363,7 +364,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
       laserBolts.push({
         pts, life: 1.0, phase: 'flash',
         flashTimer: 0.03 + Math.random() * 0.05,
-        fadeRate: 0.04 + Math.random() * 0.03,
+        fadeRate: 3.0 + Math.random() * 2.0,
         from, to, W, H,
       })
     }
@@ -397,10 +398,11 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
             b.pts = generateBolt(b.from.x * W, b.from.y * H, b.to.x * W, b.to.y * H, 5)
           }
         } else {
-          b.life -= b.fadeRate
+          b.life -= b.fadeRate * dt
           if (b.life <= 0) { laserBolts.splice(i, 1); continue }
         }
       }
+      if (laserBolts.length > 4) laserBolts.splice(0, laserBolts.length - 4)
 
       lctx.save()
       lctx.globalCompositeOperation = 'lighter'
@@ -535,8 +537,8 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
       const branches = spawnBranches(pts, 0, 3)
       bolts.push({
         pts, branches, life: 1.0, phase: 'flash',
-        flashTimer: 0.12 + Math.random() * 0.12,
-        fadeRate: 0.006 + Math.random() * 0.008,
+        flashTimer: 0.08 + Math.random() * 0.08,
+        fadeRate: 1.2 + Math.random() * 0.8,
         cloudX: x1 / W,
         cloudY: 0.05 + Math.random() * 0.15,
       })
@@ -598,9 +600,10 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
       ctx.clearRect(0, 0, W, H)
 
       // --- Cloud illumination flashes ---
+      if (cloudFlashes.length > 5) cloudFlashes.splice(0, cloudFlashes.length - 5)
       for (let i = cloudFlashes.length - 1; i >= 0; i--) {
         const cf = cloudFlashes[i]
-        cf.life -= cf.decay
+        cf.life -= cf.decay * dt * 60
         if (cf.life <= 0) { cloudFlashes.splice(i, 1); continue }
 
         const cx = cf.x * W, cy = cf.y * H
@@ -661,6 +664,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
       }
 
       // --- Draw lightning bolts ---
+      if (bolts.length > 3) bolts.splice(0, bolts.length - 3)
       ctx.save()
       ctx.globalCompositeOperation = 'lighter'
       for (let i = bolts.length - 1; i >= 0; i--) {
@@ -671,7 +675,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
           alpha = 0.5 + Math.random() * 0.5
           if (b.flashTimer <= 0) b.phase = 'fade'
         } else {
-          b.life -= b.fadeRate
+          b.life -= b.fadeRate * dt
           if (b.life <= 0) { bolts.splice(i, 1); continue }
           alpha = b.life * 0.45
         }
@@ -741,8 +745,8 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
         branches,
         life: 1.0,
         phase: 'flash',
-        flashTimer: 0.1 + Math.random() * 0.1,
-        fadeRate: 0.005 + Math.random() * 0.007,
+        flashTimer: 0.08 + Math.random() * 0.08,
+        fadeRate: 1.0 + Math.random() * 0.8,
       })
     }
 
@@ -792,6 +796,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
         nextStrike = 1800 + Math.random() * 3500
       }
 
+      if (bolts.length > 3) bolts.splice(0, bolts.length - 3)
       ctx.save()
       ctx.globalCompositeOperation = 'lighter'
       for (let i = bolts.length - 1; i >= 0; i--) {
@@ -802,7 +807,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
           alpha = 0.5 + Math.random() * 0.5
           if (b.flashTimer <= 0) b.phase = 'fade'
         } else {
-          b.life -= b.fadeRate
+          b.life -= b.fadeRate * dt
           if (b.life <= 0) {
             bolts.splice(i, 1)
             continue
