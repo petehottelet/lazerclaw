@@ -898,8 +898,8 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
 
   return (
     <div
-      className="min-h-screen w-full flex flex-col items-center relative overflow-x-hidden overflow-y-auto"
-      style={{ background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%)' }}
+      className="fixed inset-0 flex flex-col items-center overflow-x-hidden overflow-y-auto"
+      style={{ background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%)', zIndex: 100 }}
     >
       {/* Dark roiling cloud layers */}
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 0 }}>
@@ -1237,6 +1237,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
 function EntryStormOverlay({ onMidpoint, onComplete }) {
   const canvasRef = useRef(null)
   const rafRef = useRef(null)
+  const doneRef = useRef(false)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -1248,8 +1249,17 @@ function EntryStormOverlay({ onMidpoint, onComplete }) {
     let nextSpawn = 0
     const SPAWN_MS = 300
     const TOTAL_MS = 700
+    const MAX_MS = 1200
+
+    function finish() {
+      if (doneRef.current) return
+      doneRef.current = true
+      onComplete()
+    }
 
     onMidpoint()
+
+    const safetyTimer = setTimeout(finish, MAX_MS)
 
     function resize() {
       canvas.width = window.innerWidth
@@ -1303,6 +1313,7 @@ function EntryStormOverlay({ onMidpoint, onComplete }) {
 
     let lastNow = null
     function draw(now) {
+      if (doneRef.current) return
       if (!startTime) startTime = now
       const elapsed = now - startTime
       const dt = lastNow != null ? (now - lastNow) / 1000 : 0.016
@@ -1342,7 +1353,7 @@ function EntryStormOverlay({ onMidpoint, onComplete }) {
       }
 
       if (elapsed >= TOTAL_MS && bolts.length === 0) {
-        onComplete()
+        finish()
         return
       }
 
@@ -1354,6 +1365,7 @@ function EntryStormOverlay({ onMidpoint, onComplete }) {
     window.addEventListener('resize', resize)
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      clearTimeout(safetyTimer)
       window.removeEventListener('resize', resize)
     }
   }, [onMidpoint, onComplete])
@@ -1410,6 +1422,7 @@ function Root() {
 
   return (
     <>
+      {enteredApp && <App />}
       {showWelcome && (
         <WelcomePage
           onEnter={handleEnter}
@@ -1418,7 +1431,6 @@ function Root() {
           introActive={false}
         />
       )}
-      {enteredApp && <App />}
       {entryStormActive && (
         <EntryStormOverlay onMidpoint={handleStormMidpoint} onComplete={handleStormComplete} />
       )}
