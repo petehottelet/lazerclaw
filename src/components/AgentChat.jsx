@@ -500,7 +500,7 @@ function ClawPfp({ size = 36, className = '' }) {
   )
 }
 
-function MessageBubble({ message, darkMode, onAddToDesign, canvasState }) {
+function MessageBubble({ message, darkMode, onAddToDesign, onChoiceClick, msgIndex, canvasState }) {
   const isUser = message.role === 'user'
   const handleAddToDesign = useCallback((preview) => {
     if (!preview || preview.added || !onAddToDesign || !canvasState?.canvasRef?.current) return
@@ -523,6 +523,48 @@ function MessageBubble({ message, darkMode, onAddToDesign, canvasState }) {
         }
       >
         {message.content}
+        {message.choices && message.choices.length > 0 && (
+          <div className="mt-3 flex flex-col gap-2">
+            {message.choices.map((choice) => (
+              <button
+                key={choice.id}
+                type="button"
+                disabled={choice.dismissed}
+                onClick={() => !choice.chosen && !choice.dismissed && onChoiceClick?.(choice, msgIndex)}
+                className="text-xs font-semibold py-2.5 px-4 rounded-xl transition-all text-left flex items-center gap-2"
+                style={choice.chosen
+                  ? {
+                      background: 'linear-gradient(135deg, #0ea5e9, #1e3a8a)',
+                      color: '#fff',
+                      border: '1px solid rgba(14,165,233,0.5)',
+                      boxShadow: '0 0 12px rgba(14,165,233,0.3)',
+                      cursor: 'default',
+                    }
+                  : choice.dismissed
+                    ? {
+                        background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
+                        color: darkMode ? '#475569' : '#94a3b8',
+                        border: '1px solid transparent',
+                        cursor: 'default',
+                        opacity: 0.5,
+                      }
+                    : {
+                        background: darkMode ? 'rgba(14,165,233,0.12)' : 'rgba(14,165,233,0.08)',
+                        color: darkMode ? '#7dd3fc' : '#0284c7',
+                        border: darkMode ? '1px solid rgba(14,165,233,0.3)' : '1px solid rgba(14,165,233,0.25)',
+                        cursor: 'pointer',
+                      }
+                }
+                onMouseEnter={e => { if (!choice.chosen && !choice.dismissed) { e.currentTarget.style.background = darkMode ? 'rgba(14,165,233,0.22)' : 'rgba(14,165,233,0.15)'; e.currentTarget.style.boxShadow = '0 0 8px rgba(14,165,233,0.2)' } }}
+                onMouseLeave={e => { if (!choice.chosen && !choice.dismissed) { e.currentTarget.style.background = darkMode ? 'rgba(14,165,233,0.12)' : 'rgba(14,165,233,0.08)'; e.currentTarget.style.boxShadow = 'none' } }}
+              >
+                <span style={{ fontSize: 14 }}>{choice.type === 'generate_image' ? '🎨' : '🏗️'}</span>
+                <span>{choice.label}</span>
+                {choice.chosen && <span style={{ marginLeft: 'auto', fontSize: 11 }}>✓</span>}
+              </button>
+            ))}
+          </div>
+        )}
         {message.imagePreviews && message.imagePreviews.length > 0 && (
           <div className="mt-2 space-y-2">
             {message.imagePreviews.map((preview) => (
@@ -979,6 +1021,18 @@ export default function AgentChat({ canvasState }) {
     return null
   }, [])
 
+  const extractAmbiguousSubject = useCallback((text) => {
+    const t = text.trim()
+    const verbs = 'generate|create|make|draw|paint|render|produce|design|build'
+    const designWords = /\b(layout|background|text|heading|title|font|color|shape|rectangle|circle|page|slide|flyer|card|template|bigger|smaller|move|resize|delete|remove|undo|redo|copy|paste)\b/i
+    if (designWords.test(t)) return null
+    const imageNouns = /\b(image|picture|photo|illustration|artwork|graphic|icon|pic|portrait|wallpaper|poster|banner|logo|thumbnail)\b/i
+    if (imageNouns.test(t)) return null
+    const m = t.match(new RegExp(`^(?:please\\s+)?(?:can you\\s+)?(?:i\\s+(?:want|need)\\s+)?(?:${verbs})\\s+(?:me\\s+)?(?:an?\\s+)?(.{3,})$`, 'i'))
+    if (m) return m[1].trim()
+    return null
+  }, [])
+
   const sendMessage = useCallback(async (userText, includeSnapshot = false) => {
     if (!userText.trim() || loading) return
 
@@ -998,6 +1052,21 @@ export default function AgentChat({ canvasState }) {
     setLoading(true)
 
     try {
+      const ambiguousSubject = !includeSnapshot ? extractAmbiguousSubject(userText) : null
+      if (ambiguousSubject) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `Yo dude, I can shred this two ways — you want a single generated image, or a full layered design masterpiece? 🤘`,
+          choices: [
+            { id: 'img_' + Date.now(), label: 'Generate an image', type: 'generate_image', subject: ambiguousSubject },
+            { id: 'des_' + Date.now(), label: 'Create a layered design', type: 'layered_design', subject: ambiguousSubject },
+          ],
+        }])
+        setLoading(false)
+        setReferenceImages([])
+        return
+      }
+
       const imagePrompt = extractImagePrompt(userText)
       if (imagePrompt && !includeSnapshot) {
         const data = await generateImageApi({
@@ -1153,6 +1222,42 @@ export default function AgentChat({ canvasState }) {
       sendMessage(input)
     }
   }
+
+  const handleChoiceClick = useCallback(async (choice, msgIndex) => {
+    if (loading) return
+    setMessages(prev => prev.map((msg, i) => {
+      if (i !== msgIndex || !msg.choices) return msg
+      return { ...msg, choices: msg.choices.map(c => c.id === choice.id ? { ...c, chosen: true } : { ...c, dismissed: true }) }
+    }))
+
+    if (choice.type === 'generate_image') {
+      setLoading(true)
+      try {
+        const data = await generateImageApi({
+          prompt: choice.subject,
+          aspectRatio: '1:1',
+          addMetal: true,
+        })
+        const url = data.urls?.[0]
+        if (url) {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: `BOOM! Fresh off the amp, dude! Here's your image. Hit "Add to design" to slam it on the canvas! 🤘`,
+            actionSummary: 'Generated 1 image',
+            imagePreviews: [{ id: uuidv4(), url, action: { prompt: choice.subject }, added: false }],
+          }])
+        } else {
+          setMessages(prev => [...prev, { role: 'assistant', content: 'Image generation came back empty, man. Try again!' }])
+        }
+      } catch (err) {
+        setMessages(prev => [...prev, { role: 'assistant', content: `Image generation failed: ${err.message}` }])
+      } finally {
+        setLoading(false)
+      }
+    } else if (choice.type === 'layered_design') {
+      sendMessage(`Design a layered composition of ${choice.subject}. Use shapes, text, colors, and generate any images needed to build a complete design.`)
+    }
+  }, [loading, sendMessage])
 
   const handleAddToDesign = useCallback((preview) => {
     const canvas = canvasState.canvasRef.current
@@ -1790,8 +1895,10 @@ export default function AgentChat({ canvasState }) {
               <MessageBubble
                 key={i}
                 message={msg}
+                msgIndex={i}
                 darkMode={isDark}
                 onAddToDesign={handleAddToDesign}
+                onChoiceClick={handleChoiceClick}
                 canvasState={canvasState}
               />
             ))}
