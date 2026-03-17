@@ -4,6 +4,20 @@ import { buildAgentSystemPrompt, serializeCanvasForAgent } from '../utils/agentP
 import { executeActions, addImageFromUrlToCanvas } from '../utils/agentExecutor'
 import { generateImage as generateImageApi } from '../utils/aiImageApi'
 
+async function callNanaBananaChat(message, history, images) {
+  const res = await fetch('/api/nana-banana-chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, history, images }),
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `NanaBanana API error (${res.status})`)
+  }
+  return res.json()
+}
+
 // ─── REALISTIC LIGHTNING BOLT GENERATION FOR DIAMOND PERIMETER ─────────────
 function generatePerimeterBolt(x1, y1, x2, y2, detail = 4) {
   let pts = [{ x: x1, y: y1 }, { x: x2, y: y2 }]
@@ -1008,6 +1022,7 @@ export default function AgentChat({ canvasState }) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [referenceImages, setReferenceImages] = useState([])
+  const [geminiHistory, setGeminiHistory] = useState([])
   const [orbPos, setOrbPos] = useState(null)
   const [orbReturning, setOrbReturning] = useState(false)
   const isDarkMode = !!canvasState.darkMode
@@ -1126,33 +1141,6 @@ export default function AgentChat({ canvasState }) {
     return { parsed, rawText }
   }, [])
 
-  const extractImagePrompt = useCallback((text) => {
-    const t = text.trim()
-    const imageNouns = 'image|picture|photo|illustration|artwork|graphic|icon|pic|portrait|wallpaper|poster|banner|logo|thumbnail'
-    const verbs = 'generate|create|make|draw|paint|render|produce|design'
-    const patterns = [
-      new RegExp(`^(?:please\\s+)?(?:can you\\s+)?(?:${verbs})\\s+(?:me\\s+)?(?:an?\\s+)?(?:${imageNouns})\\s+(?:of\\s+|with\\s+|showing\\s+|featuring\\s+)?(.+)`, 'i'),
-      new RegExp(`^(?:please\\s+)?(?:can you\\s+)?(?:i\\s+(?:want|need)\\s+)?(?:an?\\s+)?(?:${imageNouns})\\s+(?:of\\s+|with\\s+|showing\\s+|featuring\\s+)(.+)`, 'i'),
-    ]
-    for (const p of patterns) {
-      const m = t.match(p)
-      if (m) return m[1].trim()
-    }
-    return null
-  }, [])
-
-  const extractAmbiguousSubject = useCallback((text) => {
-    const t = text.trim()
-    const verbs = 'generate|create|make|draw|paint|render|produce|design|build'
-    const designWords = /\b(layout|background|text|heading|title|font|color|shape|rectangle|circle|page|slide|flyer|card|template|bigger|smaller|move|resize|delete|remove|undo|redo|copy|paste)\b/i
-    if (designWords.test(t)) return null
-    const imageNouns = /\b(image|picture|photo|illustration|artwork|graphic|icon|pic|portrait|wallpaper|poster|banner|logo|thumbnail)\b/i
-    if (imageNouns.test(t)) return null
-    const m = t.match(new RegExp(`^(?:please\\s+)?(?:can you\\s+)?(?:i\\s+(?:want|need)\\s+)?(?:${verbs})\\s+(?:me\\s+)?(?:an?\\s+)?(.{3,})$`, 'i'))
-    if (m) return m[1].trim()
-    return null
-  }, [])
-
   const sendMessage = useCallback(async (userText, includeSnapshot = false) => {
     if (!userText.trim() || loading) return
 
@@ -1172,57 +1160,90 @@ export default function AgentChat({ canvasState }) {
     setLoading(true)
 
     try {
-      const ambiguousSubject = !includeSnapshot ? extractAmbiguousSubject(userText) : null
-      if (ambiguousSubject) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: `Yo dude, I can shred this two ways — you want a single generated image, or a full layered design masterpiece? 🤘`,
-          choices: [
-            { id: 'img_' + Date.now(), label: 'Generate an image', type: 'generate_image', subject: ambiguousSubject },
-            { id: 'des_' + Date.now(), label: 'Create a layered design', type: 'layered_design', subject: ambiguousSubject },
-          ],
-        }])
-        setLoading(false)
-        setReferenceImages([])
+      // If explicitly requesting design/canvas help with a snapshot, go direct to Claude agent
+      if (includeSnapshot) {
+        await sendToDesignAgent(canvas, userMessage, currentRefImages)
         return
       }
 
-      const imagePrompt = extractImagePrompt(userText)
-      if (imagePrompt && !includeSnapshot) {
-        const data = await generateImageApi({
-          prompt: imagePrompt,
-          aspectRatio: '1:1',
-          addMetal: true,
-        })
-        const url = data.urls?.[0]
-        if (url) {
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: `Shredded it, dude! Here's your image, fresh off the amp. Hit "Add to design" to drop it on the canvas! 🤘`,
-            actionSummary: 'Generated 1 image',
-            imagePreviews: [{ id: uuidv4(), url, action: { prompt: imagePrompt }, added: false }],
-          }])
-        } else {
-          setMessages(prev => [...prev, { role: 'assistant', content: 'The image generation came back empty, man. Try again with a different prompt!' }])
+      // Route through Gemini for intelligent intent detection + image generation
+      const imagesForGemini = currentRefImages.map(img => ({
+        data: img.data,
+        mimeType: img.mediaType || 'image/png',
+      }))
+
+      const result = await callNanaBananaChat(
+        userText.trim(),
+        geminiHistory,
+        imagesForGemini.length > 0 ? imagesForGemini : undefined,
+      )
+
+      const { text, images: generatedImages, intent, modelParts, userParts } = result
+
+      // Update Gemini history for iterative editing
+      setGeminiHistory(prev => {
+        const next = [...prev]
+        if (userParts) next.push({ role: 'user', parts: userParts })
+        if (modelParts) next.push({ role: 'model', parts: modelParts })
+        // Keep history manageable
+        if (next.length > 40) return next.slice(-40)
+        return next
+      })
+
+      // If Gemini detected a design/canvas manipulation intent, route to Claude
+      if (intent?.type === 'design_help') {
+        await sendToDesignAgent(canvas, userMessage, currentRefImages)
+        return
+      }
+
+      // Gemini handled it (text reply, image generation, editing, blending, refinement)
+      const imagePreviews = []
+      if (generatedImages && generatedImages.length > 0) {
+        for (const img of generatedImages) {
+          const dataUrl = `data:${img.mimeType || 'image/png'};base64,${img.data}`
+          imagePreviews.push({
+            id: uuidv4(),
+            url: dataUrl,
+            action: { prompt: userText.trim() },
+            added: false,
+          })
         }
-        setLoading(false)
-        setReferenceImages([])
-        return
       }
 
+      const assistantMsg = {
+        role: 'assistant',
+        content: text || (imagePreviews.length > 0 ? 'Here you go!' : 'I received an empty response. Please try again.'),
+      }
+      if (imagePreviews.length > 0) {
+        assistantMsg.actionSummary = `Generated ${imagePreviews.length} image(s)`
+        assistantMsg.imagePreviews = imagePreviews
+      }
+
+      setMessages(prev => [...prev, assistantMsg])
+    } catch (err) {
+      console.error('Chat error:', err)
+      setMessages(prev => [...prev, { role: 'assistant', content: `Sorry, I encountered an error: ${err.message}. Please try again.` }])
+    } finally {
+      setLoading(false)
+      setReferenceImages([])
+    }
+  }, [canvasState, loading, messages, takeSnapshot, referenceImages, callAgent, geminiHistory])
+
+  const sendToDesignAgent = useCallback(async (canvas, userMessage, currentRefImages) => {
+    try {
       const canvasObjects = serializeCanvasForAgent(canvas)
       const systemPrompt = buildAgentSystemPrompt(canvasObjects, {
         canvasW: canvasState.canvasW || 500,
         canvasH: canvasState.canvasH || 700,
       })
-      const snapshot = includeSnapshot ? takeSnapshot() : null
+      const snapshot = takeSnapshot()
 
       const conversationMessages = [...messages.filter(m => m.role !== 'system'), userMessage].map(m => ({
         role: m.role,
         content: m.content,
       }))
 
-      const { parsed, rawText } = await callAgent(systemPrompt, conversationMessages, snapshot, currentRefImages.length ? currentRefImages : null)
+      const { parsed, rawText } = await callAgent(systemPrompt, conversationMessages, snapshot, currentRefImages?.length ? currentRefImages : null)
 
       if (parsed && parsed.message) {
         let actionSummary = null
@@ -1269,13 +1290,13 @@ export default function AgentChat({ canvasState }) {
         setMessages(prev => [...prev, { role: 'assistant', content: rawText || 'I received an empty response. Please try again.' }])
       }
     } catch (err) {
-      console.error('Agent error:', err)
+      console.error('Design agent error:', err)
       setMessages(prev => [...prev, { role: 'assistant', content: `Sorry, I encountered an error: ${err.message}. Please try again.` }])
     } finally {
       setLoading(false)
       setReferenceImages([])
     }
-  }, [canvasState, loading, messages, takeSnapshot, referenceImages, callAgent, extractImagePrompt])
+  }, [canvasState, messages, takeSnapshot, callAgent])
 
   const isImageFile = (file) => {
     const t = file.type || ''
@@ -1353,21 +1374,33 @@ export default function AgentChat({ canvasState }) {
     if (choice.type === 'generate_image') {
       setLoading(true)
       try {
-        const data = await generateImageApi({
-          prompt: choice.subject,
-          aspectRatio: '1:1',
-          addMetal: true,
+        const prompt = `Generate an image of ${choice.subject}`
+        const result = await callNanaBananaChat(prompt, geminiHistory)
+        const { text, images: generatedImages, modelParts, userParts } = result
+
+        setGeminiHistory(prev => {
+          const next = [...prev]
+          if (userParts) next.push({ role: 'user', parts: userParts })
+          if (modelParts) next.push({ role: 'model', parts: modelParts })
+          if (next.length > 40) return next.slice(-40)
+          return next
         })
-        const url = data.urls?.[0]
-        if (url) {
+
+        if (generatedImages && generatedImages.length > 0) {
+          const imagePreviews = generatedImages.map(img => ({
+            id: uuidv4(),
+            url: `data:${img.mimeType || 'image/png'};base64,${img.data}`,
+            action: { prompt: choice.subject },
+            added: false,
+          }))
           setMessages(prev => [...prev, {
             role: 'assistant',
-            content: `BOOM! Fresh off the amp, dude! Here's your image. Hit "Add to design" to slam it on the canvas! 🤘`,
-            actionSummary: 'Generated 1 image',
-            imagePreviews: [{ id: uuidv4(), url, action: { prompt: choice.subject }, added: false }],
+            content: text || `BOOM! Fresh off the amp, dude! Here's your image. Hit "Add to design" to slam it on the canvas!`,
+            actionSummary: `Generated ${imagePreviews.length} image(s)`,
+            imagePreviews,
           }])
         } else {
-          setMessages(prev => [...prev, { role: 'assistant', content: 'Image generation came back empty, man. Try again!' }])
+          setMessages(prev => [...prev, { role: 'assistant', content: text || 'Image generation came back empty, man. Try again!' }])
         }
       } catch (err) {
         setMessages(prev => [...prev, { role: 'assistant', content: `Image generation failed: ${err.message}` }])
@@ -1377,7 +1410,7 @@ export default function AgentChat({ canvasState }) {
     } else if (choice.type === 'layered_design') {
       sendMessage(`Design a layered composition of ${choice.subject}. Use shapes, text, colors, and generate any images needed to build a complete design.`)
     }
-  }, [loading, sendMessage])
+  }, [loading, sendMessage, geminiHistory])
 
   const handleAddToDesign = useCallback((preview) => {
     const canvas = canvasState.canvasRef.current

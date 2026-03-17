@@ -7,7 +7,7 @@ const SECRET = SECRET_RAW
 
 const PUBLIC_AUTH_ROUTES = ['/api/auth/login', '/api/auth/ip', '/api/auth/logout']
 
-const RATE_LIMITED_PUBLIC_ROUTES = ['/api/agent', '/api/ai-image']
+const RATE_LIMITED_PUBLIC_ROUTES = ['/api/agent', '/api/ai-image', '/api/nana-banana-chat']
 
 const rateBuckets = new Map()
 const RATE_WINDOW_MS = 60_000
