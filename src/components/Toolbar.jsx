@@ -1943,40 +1943,59 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
         </>
       )}
 
-      {/* Music / Theme Song button - mysterious and enticing */}
+      {/* Music / Theme Song button - fire icon with shimmer */}
       {collapse < 4 && <Div />}
       <button
         onClick={toggleMusic}
-        className={`${collapse >= 4 ? 'w-8 h-8' : 'w-10 h-10'} flex items-center justify-center rounded-xl transition-all shrink-0 relative ${musicPlaying ? 'music-mystery' : 'hover:music-mystery'}`}
-        title={musicPlaying ? 'Pause Theme Song' : '✨ Play Theme Song ✨'}
+        className={`${collapse >= 4 ? 'w-8 h-8' : 'w-10 h-10'} flex items-center justify-center rounded-xl transition-all shrink-0 relative overflow-hidden`}
+        title={musicPlaying ? 'Pause Theme Song' : 'Play Theme Song'}
         style={{
           background: musicPlaying
-            ? 'linear-gradient(135deg, rgba(139,92,246,0.4) 0%, rgba(168,85,247,0.5) 50%, rgba(139,92,246,0.4) 100%)'
+            ? 'linear-gradient(135deg, rgba(220,80,20,0.35) 0%, rgba(245,158,11,0.4) 50%, rgba(220,80,20,0.35) 100%)'
             : dm
-              ? 'linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(168,85,247,0.2) 50%, rgba(139,92,246,0.15) 100%)'
-              : 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(168,85,247,0.12) 50%, rgba(139,92,246,0.08) 100%)',
-          border: dm ? '1px solid rgba(168,85,247,0.5)' : '1px solid rgba(168,85,247,0.3)',
+              ? 'linear-gradient(135deg, rgba(180,60,10,0.15) 0%, rgba(220,120,30,0.18) 50%, rgba(180,60,10,0.15) 100%)'
+              : 'linear-gradient(135deg, rgba(234,88,12,0.08) 0%, rgba(245,158,11,0.12) 50%, rgba(234,88,12,0.08) 100%)',
+          border: dm ? '1px solid rgba(245,158,11,0.5)' : '1px solid rgba(234,88,12,0.3)',
           boxShadow: musicPlaying
-            ? '0 0 20px rgba(168,85,247,0.5), 0 0 40px rgba(139,92,246,0.3), inset 0 0 12px rgba(168,85,247,0.3)'
+            ? '0 0 18px rgba(245,158,11,0.5), 0 0 36px rgba(234,88,12,0.3), inset 0 0 10px rgba(245,158,11,0.25)'
             : dm
-              ? '0 0 10px rgba(168,85,247,0.2), inset 0 0 5px rgba(139,92,246,0.1)'
+              ? '0 0 8px rgba(245,158,11,0.15), inset 0 0 4px rgba(234,88,12,0.08)'
               : '0 1px 3px rgba(0,0,0,0.1)',
-          color: musicPlaying ? '#e9d5ff' : dm ? '#c4b5fd' : '#7c3aed',
         }}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-          <path d="M12 23c-3.866 0-7-2.686-7-6 0-2.91 2.184-5.399 4.5-7.463C11.266 7.906 12 6.2 12 4c0 .9.75 2.293 1.5 3.5.667 1.074 1.5 2.2 1.5 3.5 0 1.657-.716 2.886-1.5 3.5.607-.456 1.5-1.6 1.5-3 0 0 2 2.1 2 5 0 3.314-2.134 6.5-5 6.5z" fillOpacity={musicPlaying ? '0.9' : '0.7'} />
-          {musicPlaying && <path d="M12 23c-1.657 0-3-1.343-3-3 0-1.8 1.5-3 3-5 1.5 2 3 3.2 3 5 0 1.657-1.343 3-3 3z" fillOpacity="0.5" />}
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="none">
+          <defs>
+            <linearGradient id="fireGrad" x1="0.5" y1="1" x2="0.5" y2="0">
+              <stop offset="0%" stopColor="#dc2626" />
+              <stop offset="40%" stopColor="#ea580c" />
+              <stop offset="70%" stopColor="#f59e0b" />
+              <stop offset="100%" stopColor="#fbbf24" />
+            </linearGradient>
+            <linearGradient id="fireInner" x1="0.5" y1="1" x2="0.5" y2="0">
+              <stop offset="0%" stopColor="#f59e0b" />
+              <stop offset="60%" stopColor="#fbbf24" />
+              <stop offset="100%" stopColor="#fef3c7" />
+            </linearGradient>
+          </defs>
+          <path d="M12 23c-3.866 0-7-2.686-7-6 0-2.91 2.184-5.399 4.5-7.463C11.266 7.906 12 6.2 12 4c0 .9.75 2.293 1.5 3.5.667 1.074 1.5 2.2 1.5 3.5 0 1.657-.716 2.886-1.5 3.5.607-.456 1.5-1.6 1.5-3 0 0 2 2.1 2 5 0 3.314-2.134 6.5-5 6.5z"
+            fill="url(#fireGrad)" fillOpacity={musicPlaying ? '1' : '0.75'} />
+          <path d="M12 23c-1.657 0-3-1.343-3-3 0-1.8 1.5-3 3-5 1.5 2 3 3.2 3 5 0 1.657-1.343 3-3 3z"
+            fill="url(#fireInner)" fillOpacity={musicPlaying ? '0.9' : '0.5'} />
         </svg>
-        {/* Glowing indicator */}
+        {musicPlaying && (
+          <div className="absolute inset-0 pointer-events-none" style={{
+            background: 'linear-gradient(100deg, transparent 20%, rgba(251,191,36,0.25) 45%, rgba(245,158,11,0.35) 50%, rgba(251,191,36,0.25) 55%, transparent 80%)',
+            animation: 'fireShimmer 1.8s ease-in-out infinite',
+          }} />
+        )}
         <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center" style={{
           background: musicPlaying
-            ? 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)'
-            : 'linear-gradient(135deg, #6b21a8 0%, #581c87 100%)',
+            ? 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)'
+            : 'linear-gradient(135deg, #b45309 0%, #92400e 100%)',
           boxShadow: musicPlaying
-            ? '0 0 12px rgba(168,85,247,0.9), 0 0 24px rgba(139,92,246,0.6)'
-            : '0 0 6px rgba(168,85,247,0.4)',
-          border: '1px solid rgba(233,213,255,0.3)',
+            ? '0 0 10px rgba(245,158,11,0.9), 0 0 20px rgba(234,88,12,0.5)'
+            : '0 0 5px rgba(245,158,11,0.3)',
+          border: '1px solid rgba(254,243,199,0.3)',
         }}>
           {musicPlaying ? (
             <svg width="7" height="7" viewBox="0 0 24 24" fill="white">

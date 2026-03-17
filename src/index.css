@@ -1032,6 +1032,11 @@ html[data-theme]:not([data-theme="default"]) .dark ::-webkit-scrollbar-thumb {
   }
 }
 
+@keyframes fireShimmer {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
 /* Apply to light mode only - buttons get subtle sparkle on hover */
 html:not([data-dark]) button:hover,
 html:not([data-dark]) .tb-btn:hover {
