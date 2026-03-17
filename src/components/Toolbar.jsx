@@ -1943,7 +1943,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
         </>
       )}
 
-      {/* Music / Theme Song button - fire icon with shimmer */}
+      {/* Music / Theme Song button - FLAME icon with shimmer */}
       {collapse < 4 && <Div />}
       <button
         onClick={toggleMusic}
