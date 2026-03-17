@@ -774,6 +774,125 @@ function HeaderEffect() {
   )
 }
 
+function ChatEdgeArcs({ width, height }) {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    const cvs = canvasRef.current
+    if (!cvs) return
+    const ctx = cvs.getContext('2d')
+    cvs.width = width + 20
+    cvs.height = height + 20
+
+    let arcs = []
+    let nextSpawn = 0
+    let lastTime = performance.now()
+    let rafId
+
+    function spawnArc() {
+      const side = Math.floor(Math.random() * 4)
+      const W = cvs.width, H = cvs.height
+      let x1, y1, x2, y2
+      const margin = 10
+      if (side === 0) {
+        const t = margin + Math.random() * (W - 2 * margin)
+        x1 = t; y1 = margin; x2 = t + (Math.random() - 0.5) * 60; y2 = margin
+      } else if (side === 1) {
+        const t = margin + Math.random() * (W - 2 * margin)
+        x1 = t; y1 = H - margin; x2 = t + (Math.random() - 0.5) * 60; y2 = H - margin
+      } else if (side === 2) {
+        const t = margin + Math.random() * (H - 2 * margin)
+        x1 = margin; y1 = t; x2 = margin; y2 = t + (Math.random() - 0.5) * 60
+      } else {
+        const t = margin + Math.random() * (H - 2 * margin)
+        x1 = W - margin; y1 = t; x2 = W - margin; y2 = t + (Math.random() - 0.5) * 60
+      }
+      const pts = generatePerimeterBolt(x1, y1, x2, y2, 4)
+      arcs.push({ pts, life: 1.0, phase: 'flash', flashTimer: 0.03 + Math.random() * 0.04, fadeRate: 4.0 + Math.random() * 3.0, side })
+    }
+
+    function draw(now) {
+      const dt = (now - lastTime) / 1000
+      lastTime = now
+      const W = cvs.width, H = cvs.height
+      ctx.clearRect(0, 0, W, H)
+
+      nextSpawn -= dt * 1000
+      if (nextSpawn <= 0) {
+        spawnArc()
+        if (Math.random() < 0.4) spawnArc()
+        nextSpawn = 60 + Math.random() * 120
+      }
+
+      if (arcs.length > 8) arcs.splice(0, arcs.length - 8)
+
+      ctx.save()
+      ctx.globalCompositeOperation = 'lighter'
+      for (let i = arcs.length - 1; i >= 0; i--) {
+        const a = arcs[i]
+        let alpha
+        if (a.phase === 'flash') {
+          a.flashTimer -= dt
+          alpha = 0.7 + Math.random() * 0.3
+          if (a.flashTimer <= 0) a.phase = 'fade'
+        } else {
+          a.life -= a.fadeRate * dt
+          if (a.life <= 0) { arcs.splice(i, 1); continue }
+          alpha = a.life * 0.5
+        }
+
+        ctx.shadowColor = `rgba(220,40,40,${alpha * 0.6})`
+        ctx.shadowBlur = 12
+        ctx.strokeStyle = `rgba(255,80,40,${alpha * 0.2})`
+        ctx.lineWidth = 5
+        ctx.beginPath()
+        ctx.moveTo(a.pts[0].x, a.pts[0].y)
+        for (let j = 1; j < a.pts.length; j++) ctx.lineTo(a.pts[j].x, a.pts[j].y)
+        ctx.stroke()
+
+        ctx.shadowColor = `rgba(255,120,60,${alpha * 0.8})`
+        ctx.shadowBlur = 6
+        ctx.strokeStyle = `rgba(255,200,100,${alpha * 0.5})`
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.moveTo(a.pts[0].x, a.pts[0].y)
+        for (let j = 1; j < a.pts.length; j++) ctx.lineTo(a.pts[j].x, a.pts[j].y)
+        ctx.stroke()
+
+        ctx.shadowBlur = 2
+        ctx.strokeStyle = `rgba(255,255,220,${alpha * 0.9})`
+        ctx.lineWidth = 0.8
+        ctx.beginPath()
+        ctx.moveTo(a.pts[0].x, a.pts[0].y)
+        for (let j = 1; j < a.pts.length; j++) ctx.lineTo(a.pts[j].x, a.pts[j].y)
+        ctx.stroke()
+        ctx.shadowBlur = 0
+      }
+      ctx.restore()
+
+      rafId = requestAnimationFrame(draw)
+    }
+
+    rafId = requestAnimationFrame(draw)
+    return () => cancelAnimationFrame(rafId)
+  }, [width, height])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: 'absolute',
+        top: -10,
+        left: -10,
+        width: width + 20,
+        height: height + 20,
+        pointerEvents: 'none',
+        zIndex: 10,
+      }}
+    />
+  )
+}
+
 function GenieShower({ chatLeft, chatTop, chatWidth }) {
   const canvasRef = useRef(null)
 
@@ -1691,6 +1810,10 @@ export default function AgentChat({ canvasState }) {
           border-radius: 50%;
           animation: shadowFloat 6s ease-in-out infinite;
           pointer-events: none;
+          transition: background 0.6s ease;
+        }
+        .agent-orb-shadow-red {
+          background: radial-gradient(ellipse, rgba(220,40,40,0.6) 0%, rgba(180,20,20,0.35) 40%, transparent 70%) !important;
         }
         @keyframes diamondCrackle {
           0%, 100% { filter: brightness(1) drop-shadow(0 0 10px rgba(100,160,255,0.7)) drop-shadow(0 0 20px rgba(130,190,255,0.5)); }
@@ -1721,11 +1844,11 @@ export default function AgentChat({ canvasState }) {
           animation: gemHeartbeat 3s ease-in-out infinite;
         }
         @keyframes gemHeartbeat {
-          0%   { transform: scale(1);    filter: drop-shadow(0 0 8px rgba(160,20,60,0.5)) drop-shadow(0 0 18px rgba(120,10,50,0.3)) hue-rotate(145deg) saturate(1.6); }
-          25%  { transform: scale(1.03); filter: drop-shadow(0 0 14px rgba(180,15,55,0.7)) drop-shadow(0 0 30px rgba(140,10,70,0.5)) hue-rotate(150deg) saturate(1.9) brightness(1.08); }
-          50%  { transform: scale(1);    filter: drop-shadow(0 0 8px rgba(160,20,60,0.5)) drop-shadow(0 0 18px rgba(120,10,50,0.3)) hue-rotate(145deg) saturate(1.6); }
-          75%  { transform: scale(1.02); filter: drop-shadow(0 0 12px rgba(170,18,65,0.6)) drop-shadow(0 0 24px rgba(130,12,60,0.4)) hue-rotate(148deg) saturate(1.8) brightness(1.05); }
-          100% { transform: scale(1);    filter: drop-shadow(0 0 8px rgba(160,20,60,0.5)) drop-shadow(0 0 18px rgba(120,10,50,0.3)) hue-rotate(145deg) saturate(1.6); }
+          0%   { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(220,30,30,0.7)) drop-shadow(0 0 24px rgba(200,20,20,0.5)) drop-shadow(0 0 40px rgba(180,10,10,0.3)) hue-rotate(145deg) saturate(2.2) brightness(1.1); }
+          25%  { transform: scale(1.04); filter: drop-shadow(0 0 16px rgba(240,40,40,0.85)) drop-shadow(0 0 36px rgba(220,20,20,0.6)) drop-shadow(0 0 50px rgba(200,10,10,0.4)) hue-rotate(148deg) saturate(2.5) brightness(1.2); }
+          50%  { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(220,30,30,0.7)) drop-shadow(0 0 24px rgba(200,20,20,0.5)) drop-shadow(0 0 40px rgba(180,10,10,0.3)) hue-rotate(145deg) saturate(2.2) brightness(1.1); }
+          75%  { transform: scale(1.03); filter: drop-shadow(0 0 14px rgba(230,35,35,0.8)) drop-shadow(0 0 30px rgba(210,20,20,0.55)) drop-shadow(0 0 45px rgba(190,10,10,0.35)) hue-rotate(146deg) saturate(2.4) brightness(1.15); }
+          100% { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(220,30,30,0.7)) drop-shadow(0 0 24px rgba(200,20,20,0.5)) drop-shadow(0 0 40px rgba(180,10,10,0.3)) hue-rotate(145deg) saturate(2.2) brightness(1.1); }
         }
         .agent-fab-btn {
           background: transparent;
@@ -1820,23 +1943,13 @@ export default function AgentChat({ canvasState }) {
         {sparkBurst && (
           <GenieShower chatLeft={computedLeft} chatTop={computedTop} chatWidth={chatW} />
         )}
-        <svg width="0" height="0" style={{ position: 'absolute' }}>
-          <defs>
-            {/* Glycerine-style fluid: larger waves, slower motion, smoother displacement */}
-            <filter id="underwater-warp" x="-8%" y="-8%" width="116%" height="116%">
-              <feTurbulence type="fractalNoise" baseFrequency="0.002 0.003" numOctaves="2" seed={0} result="wave">
-                <animate attributeName="seed" from="0" to="40" dur="35s" repeatCount="indefinite" />
-              </feTurbulence>
-              <feDisplacementMap in="SourceGraphic" in2="wave" scale="4" xChannelSelector="R" yChannelSelector="G" />
-            </filter>
-          </defs>
-        </svg>
         <div
           className="fixed w-[380px] rounded-2xl shadow-2xl flex flex-col"
           onDragOver={handleChatDragOver}
           onDrop={handleChatDrop}
-          style={{ ...chatStyle, overflow: 'visible', filter: 'url(#underwater-warp)' }}
+          style={{ ...chatStyle, overflow: 'visible' }}
         >
+          <ChatEdgeArcs width={380} height={chatStyle.height || 500} />
           <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div className="px-4 py-3 flex items-center justify-between shrink-0" style={{ background: '#0a0e1a', position: 'relative', overflow: 'hidden' }}>
             <HeaderEffect />
@@ -1996,7 +2109,7 @@ export default function AgentChat({ canvasState }) {
         }}
       >
         {/* Floating shadow underneath the gem */}
-        <div className="agent-orb-shadow" />
+        <div className={`agent-orb-shadow${isOpen ? ' agent-orb-shadow-red' : ''}`} />
 
         {/* Canvas-based realistic lightning effect - always on, wild when clicked */}
         <OrbLightning size={ORB_SIZE} wild={wildLightning || sparkBurst} />
@@ -2084,7 +2197,7 @@ export default function AgentChat({ canvasState }) {
                     height: '100%',
                     objectFit: 'contain',
                     filter: isOpen
-                      ? 'drop-shadow(0 0 8px rgba(160,20,60,0.5)) drop-shadow(0 0 18px rgba(120,10,50,0.3)) hue-rotate(145deg) saturate(1.6)'
+                      ? 'drop-shadow(0 0 10px rgba(220,30,30,0.7)) drop-shadow(0 0 24px rgba(200,20,20,0.5)) drop-shadow(0 0 40px rgba(180,10,10,0.3)) hue-rotate(145deg) saturate(2.2) brightness(1.1)'
                       : 'drop-shadow(0 0 4px rgba(100,160,255,0.15)) drop-shadow(0 0 8px rgba(130,190,255,0.08))',
                     transition: 'filter 0.6s ease',
                   }}
