@@ -15,7 +15,6 @@ import App from './App'
 import AdminLogin from './components/AdminLogin'
 import AdminPanel from './components/AdminPanel'
 import AiToolsPage from './components/AiToolsPage'
-import LightningIntro from './components/LightningIntro'
 import AboutPage from './components/AboutPage'
 import './index.css'
 
@@ -130,7 +129,7 @@ function strokeBranch(ctx, pts, intensity) {
 }
 
 // ─── WELCOME PAGE ────────────────────────────────────────────────────────────
-function WelcomePage({ onEnter, onShowAbout, introActive }) {
+function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
   const [animated, setAnimated] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -145,6 +144,8 @@ function WelcomePage({ onEnter, onShowAbout, introActive }) {
   const canvas2Ref = useRef(null)
   const laserCanvasRef = useRef(null)
   const bgCanvasRef = useRef(null)
+  const backLightningCanvasRef = useRef(null)
+  const backLightningRafRef = useRef(null)
   const shimmerRef = useRef(null)
   const shimmer2Ref = useRef(null)
   const rafRef = useRef(null)
@@ -165,7 +166,9 @@ function WelcomePage({ onEnter, onShowAbout, introActive }) {
 
     // Returning visitor — standard delayed entrance
     const t = setTimeout(() => setAnimated(true), 100)
-    return () => clearTimeout(t)
+    // Fallback: if something blocks the timeout (e.g. error in prod), show content after 2s so page never stays stuck
+    const fallback = setTimeout(() => setAnimated(true), 2000)
+    return () => { clearTimeout(t); clearTimeout(fallback) }
   }, [introActive])
 
   // Random "thunk" — heavy impact micro-animation
@@ -694,6 +697,137 @@ function WelcomePage({ onEnter, onShowAbout, introActive }) {
     }
   }, [animated])
 
+  // Random lightning bolts behind the logo — top 2/3 of page only; fade behind fog in lower 1/3
+  useEffect(() => {
+    if (!animated || !backLightningCanvasRef.current) return
+    const canvas = backLightningCanvasRef.current
+    const ctx = canvas.getContext('2d')
+
+    let bolts = []
+    let nextStrike = 1200 + Math.random() * 2500
+
+    function resize() {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+
+    function spawnBranches(pts, depth, maxDepth) {
+      if (depth >= maxDepth) return []
+      const branches = []
+      const count = 1 + Math.floor(Math.random() * 2)
+      for (let i = 0; i < count; i++) {
+        const idx = Math.floor(pts.length * (0.2 + Math.random() * 0.6))
+        if (idx >= pts.length) continue
+        const origin = pts[idx]
+        const mainDx = pts[pts.length - 1].x - pts[0].x
+        const mainDy = pts[pts.length - 1].y - pts[0].y
+        const mainAng = Math.atan2(mainDy, mainDx)
+        const brAng = mainAng + (Math.random() < 0.5 ? 1 : -1) * (0.4 + Math.random() * 0.7)
+        const brLen = 40 + Math.random() * 120
+        const brPts = generateBolt(origin.x, origin.y, origin.x + Math.cos(brAng) * brLen, origin.y + Math.sin(brAng) * brLen, 4)
+        branches.push({ pts: brPts, width: 0.6 })
+      }
+      return branches
+    }
+
+    function spawnBolt() {
+      const W = canvas.width
+      const H = canvas.height
+      const x1 = W * (0.1 + Math.random() * 0.8)
+      const x2 = x1 + (Math.random() - 0.5) * 280
+      const y2 = H * (0.15 + Math.random() * 0.55)
+      const pts = generateBolt(x1, -40, x2, y2, 6)
+      const branches = spawnBranches(pts, 0, 2)
+      bolts.push({
+        pts,
+        branches,
+        life: 1.0,
+        phase: 'flash',
+        flashTimer: 0.1 + Math.random() * 0.1,
+        fadeRate: 0.005 + Math.random() * 0.007,
+      })
+    }
+
+    function drawBoltPath(pts, alpha, widthScale) {
+      ctx.shadowColor = `rgba(120,160,255,${alpha * 0.4})`
+      ctx.shadowBlur = 28 * widthScale
+      ctx.strokeStyle = `rgba(100,130,220,${alpha * 0.12})`
+      ctx.lineWidth = 10 * widthScale
+      ctx.beginPath()
+      ctx.moveTo(pts[0].x, pts[0].y)
+      for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j].x, pts[j].y)
+      ctx.stroke()
+
+      ctx.shadowColor = `rgba(180,200,255,${alpha * 0.55})`
+      ctx.shadowBlur = 12 * widthScale
+      ctx.strokeStyle = `rgba(200,210,255,${alpha * 0.4})`
+      ctx.lineWidth = 3 * widthScale
+      ctx.beginPath()
+      ctx.moveTo(pts[0].x, pts[0].y)
+      for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j].x, pts[j].y)
+      ctx.stroke()
+
+      ctx.shadowBlur = 4 * widthScale
+      ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.85})`
+      ctx.lineWidth = 1.2 * widthScale
+      ctx.beginPath()
+      ctx.moveTo(pts[0].x, pts[0].y)
+      for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j].x, pts[j].y)
+      ctx.stroke()
+      ctx.shadowBlur = 0
+    }
+
+    let lastTime = performance.now()
+    let elapsed = 0
+
+    function draw(now) {
+      const dt = (now - lastTime) / 1000
+      lastTime = now
+      elapsed += dt * 1000
+      const W = canvas.width
+      const H = canvas.height
+      ctx.clearRect(0, 0, W, H)
+
+      if (elapsed >= nextStrike) {
+        spawnBolt()
+        elapsed = 0
+        nextStrike = 1800 + Math.random() * 3500
+      }
+
+      ctx.save()
+      ctx.globalCompositeOperation = 'lighter'
+      for (let i = bolts.length - 1; i >= 0; i--) {
+        const b = bolts[i]
+        let alpha
+        if (b.phase === 'flash') {
+          b.flashTimer -= dt
+          alpha = 0.5 + Math.random() * 0.5
+          if (b.flashTimer <= 0) b.phase = 'fade'
+        } else {
+          b.life -= b.fadeRate
+          if (b.life <= 0) {
+            bolts.splice(i, 1)
+            continue
+          }
+          alpha = b.life * 0.5
+        }
+        drawBoltPath(b.pts, alpha, 1)
+        for (const br of b.branches) drawBoltPath(br.pts, alpha * 0.5, br.width)
+      }
+      ctx.restore()
+
+      backLightningRafRef.current = requestAnimationFrame(draw)
+    }
+
+    resize()
+    backLightningRafRef.current = requestAnimationFrame(draw)
+    window.addEventListener('resize', resize)
+    return () => {
+      if (backLightningRafRef.current) cancelAnimationFrame(backLightningRafRef.current)
+      window.removeEventListener('resize', resize)
+    }
+  }, [animated])
+
   // Random anime shimmer across logo — occasionally fires a double-sweep
   useEffect(() => {
     if (!animated) return
@@ -731,7 +865,8 @@ function WelcomePage({ onEnter, onShowAbout, introActive }) {
 
   const enterAsGuest = () => {
     try { localStorage.setItem('dtool-dark-mode', 'true') } catch {}
-    onEnter()
+    if (onEnterAsGuest) onEnterAsGuest()
+    else onEnter()
   }
 
   const handleLogin = async (e) => {
@@ -760,7 +895,7 @@ function WelcomePage({ onEnter, onShowAbout, introActive }) {
 
   return (
     <div
-      className="h-screen w-screen flex flex-col items-center justify-center relative overflow-hidden"
+      className="min-h-screen h-full max-h-screen w-full flex flex-col items-center relative overflow-x-hidden overflow-y-auto"
       style={{ background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%)' }}
     >
       {/* Dark roiling cloud layers */}
@@ -785,29 +920,52 @@ function WelcomePage({ onEnter, onShowAbout, introActive }) {
         }}
       />
 
-      {/* Thunderstorm canvas — rain, cloud flashes, lightning */}
+      {/* Random lightning behind logo — top 2/3; visually fades behind fog below */}
       {animated && (
-        <canvas ref={bgCanvasRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }} />
+        <canvas ref={backLightningCanvasRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }} />
       )}
 
-      {/* Content wrapper */}
+      {/* Fog — lower 1/3; lightning fades behind it */}
+      <div
+        className="absolute left-0 right-0 bottom-0 pointer-events-none"
+        style={{
+          height: '33.33vh',
+          zIndex: 3,
+          background: 'linear-gradient(to top, rgba(12,12,22,0.97) 0%, rgba(18,18,35,0.85) 25%, rgba(22,22,45,0.5) 55%, transparent 100%)',
+          boxShadow: 'inset 0 -40px 60px -20px rgba(10,10,20,0.5)',
+        }}
+      />
+      <div
+        className="absolute left-0 right-0 bottom-0 pointer-events-none"
+        style={{
+          height: '33.33vh',
+          zIndex: 3,
+          background: 'radial-gradient(ellipse 80% 60% at 50% 100%, rgba(30,28,50,0.6) 0%, transparent 70%), radial-gradient(ellipse 100% 40% at 50% 90%, rgba(20,18,40,0.4) 0%, transparent 60%)',
+        }}
+      />
+
+      {/* Thunderstorm canvas — rain, cloud flashes, lightning */}
+      {animated && (
+        <canvas ref={bgCanvasRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 4 }} />
+      )}
+
+      {/* Content wrapper — flows from top, extra bottom padding so form never piles on About */}
       <div
         ref={contentRef}
-        className="flex flex-col items-center relative"
+        className="flex flex-col items-center justify-start w-full min-w-0 pt-6 pb-32 px-4 relative"
         style={{ zIndex: 10 }}
       >
 
-      {/* Logo with lightning overlay */}
-      <div className="relative mb-8">
-
-        <div ref={logoWrapRef} className="relative" style={{ display: 'inline-block' }}>
+      {/* Logo with lightning overlay — scales down on small viewports */}
+      <div className="relative mb-4 sm:mb-6 md:mb-8 flex-shrink-0 w-full flex justify-center">
+        <div ref={logoWrapRef} className="relative" style={{ display: 'inline-block', maxWidth: '90vw' }}>
           <img
             ref={logoRef}
             src="/lazerclaw_logo.png"
             alt="LazerClaw"
             className={animated ? 'welcome-logo-glow' : ''}
             style={{
-              display: 'block', height: 350, maxWidth: '90vw', objectFit: 'contain',
+              display: 'block', height: 350, maxHeight: 'min(350px, 38vh)', maxWidth: '100%', width: 'auto', objectFit: 'contain',
               animation: cameFromIntro.current
                 ? (animated ? 'logoGlitchIn 0.7s ease-out forwards, welcomeLogoGlow 6s ease-in-out 0.7s infinite' : 'none')
                 : (animated ? 'logoFadeIn 0.6s ease-out forwards, welcomeLogoGlow 6s ease-in-out 0.6s infinite' : 'none'),
@@ -873,11 +1031,11 @@ function WelcomePage({ onEnter, onShowAbout, introActive }) {
 
       </div>
 
-      {/* Login Form */}
+      {/* Login Form — responsive width and padding */}
       <form
         ref={formRef}
         onSubmit={handleLogin}
-        className="relative rounded-2xl p-8 w-[480px] max-w-[90vw] flex flex-col gap-4"
+        className="relative rounded-2xl w-full max-w-[480px] min-w-0 flex flex-col gap-4 p-4 sm:p-6 md:p-8"
         style={{
           background: 'rgba(15, 15, 25, 0.9)',
           border: '1px solid rgba(139, 92, 246, 0.3)',
@@ -890,23 +1048,23 @@ function WelcomePage({ onEnter, onShowAbout, introActive }) {
           }),
         }}
       >
-        {/* Tagline */}
+        {/* Tagline — cool metal font, 1.3x larger */}
         <div className="text-center mb-1">
-          <div className="text-[15px] tracking-wider"
-            style={{ fontFamily: "'Metal Mania', cursive", background: 'linear-gradient(180deg, #e8e8e8 0%, #ffffff 20%, #b8b8b8 40%, #8a8a8a 50%, #b8b8b8 60%, #ffffff 80%, #d0d0d0 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', filter: 'drop-shadow(0 1px 0 rgba(0,0,0,0.8)) drop-shadow(0 2px 4px rgba(0,0,0,0.5))', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          <div className="tracking-wider"
+            style={{ fontSize: 'clamp(16px, 4vw, 20px)', fontFamily: "'Metal Mania', cursive", background: 'linear-gradient(180deg, #e8e8e8 0%, #ffffff 20%, #b8b8b8 40%, #8a8a8a 50%, #b8b8b8 60%, #ffffff 80%, #d0d0d0 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', filter: 'drop-shadow(0 1px 0 rgba(0,0,0,0.8)) drop-shadow(0 2px 4px rgba(0,0,0,0.5))', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
             The World's First &amp; Only Heavy Metal
           </div>
-          <div className="text-[15px] tracking-wider"
-            style={{ fontFamily: "'Metal Mania', cursive", background: 'linear-gradient(180deg, #e8e8e8 0%, #ffffff 20%, #b8b8b8 40%, #8a8a8a 50%, #b8b8b8 60%, #ffffff 80%, #d0d0d0 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', filter: 'drop-shadow(0 1px 0 rgba(0,0,0,0.8)) drop-shadow(0 2px 4px rgba(0,0,0,0.5))', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          <div className="tracking-wider"
+            style={{ fontSize: 'clamp(16px, 4vw, 20px)', fontFamily: "'Metal Mania', cursive", background: 'linear-gradient(180deg, #e8e8e8 0%, #ffffff 20%, #b8b8b8 40%, #8a8a8a 50%, #b8b8b8 60%, #ffffff 80%, #d0d0d0 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', filter: 'drop-shadow(0 1px 0 rgba(0,0,0,0.8)) drop-shadow(0 2px 4px rgba(0,0,0,0.5))', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
             Design Tool Made for Lobsters™
           </div>
         </div>
 
-        {/* Primary CTA - Use as Guest */}
+        {/* Primary CTA - Use as Guest — responsive text */}
         <button
           type="button"
           onClick={enterAsGuest}
-          className="w-full rounded py-3.5 text-[21px] font-black uppercase transition-all duration-200 hover:scale-105 active:scale-[0.98] relative overflow-hidden"
+          className="w-full rounded py-3 sm:py-3.5 text-base sm:text-lg md:text-[21px] font-black uppercase transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden"
           style={{
             background: 'linear-gradient(180deg, #181440 0%, #7888c8 48%, #ffffff 50%, #2a1050 52%, #8848c8 100%)',
             color: '#fff',
@@ -1021,11 +1179,11 @@ function WelcomePage({ onEnter, onShowAbout, introActive }) {
           </div>
         )}
 
-        {/* Secondary CTA - Login */}
+        {/* Secondary CTA - Login — responsive text */}
         <button
           type="submit"
           disabled={loginLoading}
-          className="w-full rounded-lg py-3 text-[21px] font-semibold transition-all duration-200"
+          className="w-full rounded-lg py-3 text-base sm:text-lg md:text-[21px] font-semibold transition-all duration-200"
           style={{
             background: 'transparent',
             border: '2px solid rgba(139, 92, 246, 0.5)',
@@ -1072,15 +1230,151 @@ function WelcomePage({ onEnter, onShowAbout, introActive }) {
   )
 }
 
+// Full-screen lightning storm overlay to celebrate entering the app (e.g. after "Use as Guest")
+function EntryStormOverlay({ onComplete }) {
+  const canvasRef = useRef(null)
+  const rafRef = useRef(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+
+    let bolts = []
+    let startTime = null
+    let nextSpawn = 0
+    const STORM_DURATION_MS = 800
+    const FADEOUT_DURATION_MS = 350
+
+    function resize() {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+
+    function spawnBolt() {
+      const W = canvas.width
+      const H = canvas.height
+      const x1 = W * (0.05 + Math.random() * 0.9)
+      const x2 = x1 + (Math.random() - 0.5) * 400
+      const y2 = H * (0.3 + Math.random() * 0.65)
+      const pts = generateBolt(x1, -50, x2, y2, 6)
+      bolts.push({
+        pts,
+        life: 1.0,
+        phase: 'flash',
+        flashTimer: 0.04 + Math.random() * 0.05,
+        fadeRate: 0.04 + Math.random() * 0.03,
+      })
+    }
+
+    function drawBolt(pts, alpha) {
+      ctx.shadowColor = `rgba(140,180,255,${alpha * 0.5})`
+      ctx.shadowBlur = 35
+      ctx.strokeStyle = `rgba(100,140,230,${alpha * 0.15})`
+      ctx.lineWidth = 12
+      ctx.beginPath()
+      ctx.moveTo(pts[0].x, pts[0].y)
+      for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j].x, pts[j].y)
+      ctx.stroke()
+
+      ctx.shadowColor = `rgba(200,220,255,${alpha * 0.7})`
+      ctx.shadowBlur = 16
+      ctx.strokeStyle = `rgba(220,235,255,${alpha * 0.5})`
+      ctx.lineWidth = 4
+      ctx.beginPath()
+      ctx.moveTo(pts[0].x, pts[0].y)
+      for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j].x, pts[j].y)
+      ctx.stroke()
+
+      ctx.shadowBlur = 5
+      ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.95})`
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(pts[0].x, pts[0].y)
+      for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j].x, pts[j].y)
+      ctx.stroke()
+      ctx.shadowBlur = 0
+    }
+
+    let lastNow = null
+    function draw(now) {
+      if (!startTime) startTime = now
+      const elapsed = now - startTime
+      const dt = lastNow != null ? (now - lastNow) / 1000 : 0.016
+      lastNow = now
+      const W = canvas.width
+      const H = canvas.height
+
+      ctx.clearRect(0, 0, W, H)
+
+      if (elapsed < STORM_DURATION_MS) {
+        if (elapsed >= nextSpawn) {
+          spawnBolt()
+          spawnBolt()
+          if (Math.random() < 0.5) spawnBolt()
+          nextSpawn = elapsed + 40 + Math.random() * 60
+        }
+
+        ctx.save()
+        ctx.globalCompositeOperation = 'lighter'
+        for (let i = bolts.length - 1; i >= 0; i--) {
+          const b = bolts[i]
+          let alpha
+          if (b.phase === 'flash') {
+            b.flashTimer -= dt
+            if (b.flashTimer <= 0) b.phase = 'fade'
+            alpha = 0.6 + Math.random() * 0.4
+          } else {
+            b.life -= b.fadeRate
+            if (b.life <= 0) { bolts.splice(i, 1); continue }
+            alpha = b.life * 0.6
+          }
+          drawBolt(b.pts, alpha)
+        }
+        ctx.restore()
+      }
+
+      const fadeStart = STORM_DURATION_MS
+      if (elapsed >= fadeStart) {
+        const fadeElapsed = elapsed - fadeStart
+        const fade = Math.min(1, fadeElapsed / FADEOUT_DURATION_MS)
+        ctx.fillStyle = `rgba(8,8,18,${fade})`
+        ctx.fillRect(0, 0, W, H)
+        if (fade >= 1) {
+          onComplete()
+          return
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(draw)
+    }
+
+    resize()
+    rafRef.current = requestAnimationFrame(draw)
+    window.addEventListener('resize', resize)
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      window.removeEventListener('resize', resize)
+    }
+  }, [onComplete])
+
+  return (
+    <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 99999 }}>
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+    </div>
+  )
+}
+
 function Root() {
   const isAdminRoute = window.location.pathname === '/admin'
   const isAiToolsRoute = window.location.pathname === '/aitools'
-  const introSeen = !isAdminRoute && !isAiToolsRoute && !sessionStorage.getItem('lazerclaw-intro-seen')
 
-  const [showIntro, setShowIntro] = useState(introSeen)
-  const [introComplete, setIntroComplete] = useState(!introSeen)
   const [enteredApp, setEnteredApp] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(true)
   const [showAbout, setShowAbout] = useState(false)
+  const [entryStormActive, setEntryStormActive] = useState(false)
+  const [curtainVisible, setCurtainVisible] = useState(false)
+  const [curtainOpaque, setCurtainOpaque] = useState(false)
   const [adminAuth, setAdminAuth] = useState(false)
   const [theme] = useState(() => {
     try { return localStorage.getItem('dtool-theme') || 'default' } catch { return 'default' }
@@ -1090,45 +1384,72 @@ function Root() {
     applyTheme(theme)
   }, [theme])
 
-  const handleIntroComplete = () => {
-    sessionStorage.setItem('lazerclaw-intro-seen', '1')
-    setShowIntro(false)
-    setIntroComplete(true)
-  }
+  const handleEnter = useCallback(() => {
+    setCurtainVisible(true)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setCurtainOpaque(true))
+    })
+    setTimeout(() => {
+      setEnteredApp(true)
+      setShowWelcome(false)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setCurtainOpaque(false))
+      })
+      setTimeout(() => setCurtainVisible(false), 500)
+    }, 450)
+  }, [])
 
-  // Admin route - requires login
+  const handleEnterAsGuest = useCallback(() => {
+    setEntryStormActive(true)
+  }, [])
+
+  const handleStormComplete = useCallback(() => {
+    setCurtainVisible(true)
+    setCurtainOpaque(true)
+    setEntryStormActive(false)
+    setEnteredApp(true)
+    setShowWelcome(false)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setCurtainOpaque(false))
+    })
+    setTimeout(() => setCurtainVisible(false), 500)
+  }, [])
+
   if (isAdminRoute) {
-    if (!adminAuth) {
-      return <AdminLogin onAuth={() => setAdminAuth(true)} />
-    }
+    if (!adminAuth) return <AdminLogin onAuth={() => setAdminAuth(true)} />
     return <AdminPanel onClose={() => { setAdminAuth(false); window.location.href = '/' }} />
   }
 
   if (isAiToolsRoute) return <AiToolsPage />
+  if (showAbout) return <AboutPage onBack={() => setShowAbout(false)} />
 
-  // About page
-  if (showAbout) {
-    return <AboutPage onBack={() => setShowAbout(false)} />
-  }
-
-  // Welcome page + intro layered together for seamless transition
-  if (showIntro || (!enteredApp && !showAbout)) {
-    return (
-      <>
-        {!enteredApp && (
-          <WelcomePage
-            onEnter={() => setEnteredApp(true)}
-            onShowAbout={() => setShowAbout(true)}
-            introActive={showIntro}
-          />
-        )}
-        {showIntro && <LightningIntro onComplete={handleIntroComplete} />}
-      </>
-    )
-  }
-
-  // Main app - no auth required, no data collection
-  return <App />
+  return (
+    <>
+      {showWelcome && (
+        <WelcomePage
+          onEnter={handleEnter}
+          onEnterAsGuest={handleEnterAsGuest}
+          onShowAbout={() => setShowAbout(true)}
+          introActive={false}
+        />
+      )}
+      {enteredApp && <App />}
+      {entryStormActive && (
+        <EntryStormOverlay onComplete={handleStormComplete} />
+      )}
+      {curtainVisible && (
+        <div
+          className="fixed inset-0 pointer-events-none"
+          style={{
+            zIndex: 99998,
+            backgroundColor: '#080812',
+            opacity: curtainOpaque ? 1 : 0,
+            transition: 'opacity 0.4s ease-in-out',
+          }}
+        />
+      )}
+    </>
+  )
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'))

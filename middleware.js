@@ -10,6 +10,10 @@ export default async function middleware(request) {
   if (PUBLIC_AUTH_ROUTES.some(r => pathname === r)) {
     return                          // allow through
   }
+  // Allow AI image endpoint (exact or with trailing slash / base path)
+  if (pathname === '/api/ai-image' || pathname.startsWith('/api/ai-image')) {
+    return
+  }
 
   if (!pathname.startsWith('/api/')) {
     return                          // only protect API routes

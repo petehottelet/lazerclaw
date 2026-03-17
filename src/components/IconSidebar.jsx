@@ -62,6 +62,9 @@ const items = [
   },
 ]
 
+// AI Tools panel hidden from nav per product request
+const SIDEBAR_ITEMS = items.filter((i) => i.id !== 'ai-tools')
+
 export default function IconSidebar({ activePanel, onSelectPanel, darkMode }) {
   return (
     <div
@@ -75,7 +78,7 @@ export default function IconSidebar({ activePanel, onSelectPanel, darkMode }) {
           : '1px solid #e2e8f0',
       }}
     >
-      {items.map(item => {
+      {SIDEBAR_ITEMS.map(item => {
         const isActive = activePanel === item.id
         return (
           <button

@@ -22,6 +22,7 @@ export async function generateImage({ prompt, aspectRatio = '1:1', num = 1, mode
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'generate', prompt: finalPrompt, num, aspectRatio, model }),
+    credentials: 'include',
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Request failed' }))
@@ -36,6 +37,7 @@ export async function editImage({ prompt, imageUrl, aspectRatio, model, addMetal
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'edit', prompt: finalPrompt, imageUrl, aspectRatio, model }),
+    credentials: 'include',
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Request failed' }))
@@ -49,6 +51,7 @@ export async function removeBackground({ imageUrl, aspectRatio, model }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'removeBackground', imageUrl, aspectRatio, model }),
+    credentials: 'include',
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Request failed' }))
@@ -62,6 +65,7 @@ export async function restorePhoto({ imageUrl, aspectRatio, model }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'restore', imageUrl, aspectRatio, model }),
+    credentials: 'include',
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Request failed' }))
@@ -75,6 +79,7 @@ export async function colorizePhoto({ imageUrl, aspectRatio, model }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'colorize', imageUrl, aspectRatio, model }),
+    credentials: 'include',
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Request failed' }))
@@ -88,6 +93,7 @@ export async function removeRedeye({ imageUrl, aspectRatio, model }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'removeRedeye', imageUrl, aspectRatio, model }),
+    credentials: 'include',
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Request failed' }))

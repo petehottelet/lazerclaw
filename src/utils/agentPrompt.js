@@ -82,16 +82,16 @@ AVAILABLE FONTS:
 ${AVAILABLE_FONTS.map(f => `  - "${f}"`).join('\n')}`
 }
 
-export function buildAgentSystemPrompt(canvasState, { iterativeStep, iterativePlan, isReferenceImage } = {}) {
+export function buildAgentSystemPrompt(canvasState) {
   const canvasInfo = canvasState
     ? `\n\nCurrent canvas objects:\n${JSON.stringify(canvasState, null, 2)}`
     : ''
 
-  const iterativeInstructions = buildIterativeInstructions(iterativeStep, iterativePlan)
-
   const identity = getSection('Identity')
+  const designProcess = getSection('Design Process')
   const placementRules = getSection('Placement & Safety Rules')
   const responseFormat = getSection('Response Format')
+  const clarificationRule = getSection('Clarification Rule')
   const designPrinciples = getSection('Core Design Principles')
   const typography = getSection('Typography Framework')
   const colorSystem = getSection('Color System')
@@ -99,13 +99,15 @@ export function buildAgentSystemPrompt(canvasState, { iterativeStep, iterativePl
 
   return `${identity}
 
-${iterativeInstructions}
+${designProcess}
 
 ${placementRules}
 
 ${responseFormat}
 
 ${buildDynamicCatalog()}
+
+${clarificationRule}
 
 ${designPrinciples}
 
@@ -115,26 +117,6 @@ ${colorSystem}
 
 ${additionalCapabilities}
 ${canvasInfo}`
-}
-
-function buildIterativeInstructions(step, plan) {
-  if (!step) return getSection('Design Process') + '\n\n' + getSection('Design Process — Plan')
-
-  if (step === 'continue') {
-    const base = getSection('Design Process — Build')
-    return base.replace(
-      /DESIGN PLAN: \{\{INJECTED_PLAN\}\}/m,
-      `DESIGN PLAN: ${JSON.stringify(plan)}`
-    )
-  }
-
-  if (step === 'refine') {
-    return getSection('Design Process — Refine')
-  }
-
-  if (step === 'rate') return getSection('Design Process — Rate')
-
-  return ''
 }
 
 export function serializeCanvasForAgent(canvas) {

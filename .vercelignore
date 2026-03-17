@@ -1,7 +1,11 @@
 node_modules
 .env
 .env.local
+.env.production
+.env.*.local
 /audio
 /motion
 /project.md
 /artworks
+secrets.md
+*.secret

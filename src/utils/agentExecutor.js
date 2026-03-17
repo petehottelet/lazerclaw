@@ -1,16 +1,20 @@
 import { Textbox, Rect, Circle, Ellipse, Triangle, Polygon, Path, FabricImage, Shadow } from 'fabric'
 import { v4 as uuidv4 } from 'uuid'
 
+// Same filled style as ShapesPanel: one fill color, no stroke
+const SHAPE_FILL = '#C8C4BE'
+const SHAPE_OPTS = { stroke: 'transparent', strokeWidth: 0 }
+
 const SHAPE_FACTORIES = {
-  rectangle: (p) => new Rect({ width: p.width || 120, height: p.height || 80, fill: p.fill || '#4A90D9', rx: 0, ry: 0, _dtoolId: uuidv4() }),
-  square: (p) => new Rect({ width: p.width || 100, height: p.height || 100, fill: p.fill || '#4A90D9', _dtoolId: uuidv4() }),
-  rounded_rect: (p) => new Rect({ width: p.width || 120, height: p.height || 80, fill: p.fill || '#4A90D9', rx: 12, ry: 12, _dtoolId: uuidv4() }),
-  circle: (p) => new Circle({ radius: (p.width || 100) / 2, fill: p.fill || '#E74C3C', _dtoolId: uuidv4() }),
-  ellipse: (p) => new Ellipse({ rx: (p.width || 120) / 2, ry: (p.height || 80) / 2, fill: p.fill || '#E74C3C', _dtoolId: uuidv4() }),
-  triangle: (p) => new Triangle({ width: p.width || 100, height: p.height || 90, fill: p.fill || '#2ECC71', _dtoolId: uuidv4() }),
+  rectangle: (p) => new Rect({ width: p.width || 120, height: p.height || 80, fill: p.fill || SHAPE_FILL, rx: 0, ry: 0, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
+  square: (p) => new Rect({ width: p.width || 100, height: p.height || 100, fill: p.fill || SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
+  rounded_rect: (p) => new Rect({ width: p.width || 120, height: p.height || 80, fill: p.fill || SHAPE_FILL, rx: 12, ry: 12, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
+  circle: (p) => new Circle({ radius: (p.width || 100) / 2, fill: p.fill || SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
+  ellipse: (p) => new Ellipse({ rx: (p.width || 120) / 2, ry: (p.height || 80) / 2, fill: p.fill || SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
+  triangle: (p) => new Triangle({ width: p.width || 100, height: p.height || 90, fill: p.fill || SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
   diamond: (p) => new Polygon(
     [{ x: 50, y: 0 }, { x: 100, y: 50 }, { x: 50, y: 100 }, { x: 0, y: 50 }],
-    { fill: p.fill || '#F39C12', _dtoolId: uuidv4() }
+    { fill: p.fill || SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }
   ),
   pentagon: (p) => {
     const r = 50
@@ -18,7 +22,7 @@ const SHAPE_FACTORIES = {
       const a = (Math.PI * 2 * i) / 5 - Math.PI / 2
       return { x: r + r * Math.cos(a), y: r + r * Math.sin(a) }
     })
-    return new Polygon(pts, { fill: p.fill || '#9B59B6', _dtoolId: uuidv4() })
+    return new Polygon(pts, { fill: p.fill || SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() })
   },
   hexagon: (p) => {
     const r = 50
@@ -26,7 +30,7 @@ const SHAPE_FACTORIES = {
       const a = (Math.PI * 2 * i) / 6 - Math.PI / 2
       return { x: r + r * Math.cos(a), y: r + r * Math.sin(a) }
     })
-    return new Polygon(pts, { fill: p.fill || '#1ABC9C', _dtoolId: uuidv4() })
+    return new Polygon(pts, { fill: p.fill || SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() })
   },
   star: (p) => {
     const outer = 50, inner = 22
@@ -35,18 +39,18 @@ const SHAPE_FACTORIES = {
       const a = (Math.PI * 2 * i) / 10 - Math.PI / 2
       return { x: outer + r * Math.cos(a), y: outer + r * Math.sin(a) }
     })
-    return new Polygon(pts, { fill: p.fill || '#F1C40F', _dtoolId: uuidv4() })
+    return new Polygon(pts, { fill: p.fill || SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() })
   },
   heart: (p) => new Path(
     'M 50 30 C 50 10, 90 0, 90 30 C 90 60, 50 90, 50 90 C 50 90, 10 60, 10 30 C 10 0, 50 10, 50 30 Z',
-    { fill: p.fill || '#E74C3C', _dtoolId: uuidv4() }
+    { fill: p.fill || SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }
   ),
   arrow_right: (p) => new Polygon(
     [
       { x: 0, y: 30 }, { x: 70, y: 30 }, { x: 70, y: 10 },
       { x: 100, y: 50 }, { x: 70, y: 90 }, { x: 70, y: 70 }, { x: 0, y: 70 },
     ],
-    { fill: p.fill || '#3498DB', _dtoolId: uuidv4() }
+    { fill: p.fill || SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }
   ),
 }
 
@@ -291,7 +295,7 @@ export async function executeActions(canvas, actions, canvasState) {
           result = executeAddShadow(canvas, action)
           break
         case 'generateImage':
-          result = await executeGenerateImage(canvas, action)
+          result = await executeGenerateImage(canvas, action, canvasState)
           break
         case 'editImage':
           result = await executeEditImage(canvas, action)
@@ -320,7 +324,35 @@ export async function executeActions(canvas, actions, canvasState) {
   return results
 }
 
-async function executeGenerateImage(canvas, action) {
+/** Add an already-generated image (by URL) to the canvas. Used for "Add to design" from chat preview. Caller should call canvasState.saveUndoState() before if needed. */
+export function addImageFromUrlToCanvas(canvas, imageUrl, action, canvasState = {}) {
+  if (!canvas || !imageUrl) return Promise.resolve({ error: 'Missing canvas or image URL' })
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      const fImg = new FabricImage(img, { _dtoolId: uuidv4() })
+      const maxW = (action && action.width) || 400
+      const maxH = (action && action.height) || 400
+      const scale = Math.min(maxW / fImg.width, maxH / fImg.height, 1)
+      fImg.set({
+        scaleX: scale,
+        scaleY: scale,
+        left: (action && action.left) ?? 80 + Math.random() * 60,
+        top: (action && action.top) ?? 80 + Math.random() * 60,
+      })
+      canvas.add(fImg)
+      canvas.setActiveObject(fImg)
+      canvas.requestRenderAll()
+      if (canvasState.refreshObjects) canvasState.refreshObjects()
+      resolve({ success: true, objectId: fImg._dtoolId })
+    }
+    img.onerror = () => resolve({ error: 'Failed to load image' })
+    img.src = imageUrl
+  })
+}
+
+async function executeGenerateImage(canvas, action, canvasState) {
   const { generateImage } = await import('./aiImageApi')
   const data = await generateImage({
     prompt: action.prompt || '',
@@ -329,28 +361,7 @@ async function executeGenerateImage(canvas, action) {
   })
   const url = data.urls?.[0]
   if (!url) return { error: 'No image URL returned' }
-
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      const fImg = new FabricImage(img, { _dtoolId: uuidv4() })
-      const maxW = action.width || 400
-      const maxH = action.height || 400
-      const scale = Math.min(maxW / fImg.width, maxH / fImg.height, 1)
-      fImg.set({
-        scaleX: scale,
-        scaleY: scale,
-        left: action.left || 80 + Math.random() * 60,
-        top: action.top || 80 + Math.random() * 60,
-      })
-      canvas.add(fImg)
-      canvas.setActiveObject(fImg)
-      resolve({ success: true, objectId: fImg._dtoolId })
-    }
-    img.onerror = () => resolve({ error: 'Failed to load generated image' })
-    img.src = url
-  })
+  return addImageFromUrlToCanvas(canvas, url, action, canvasState || {})
 }
 
 async function executeEditImage(canvas, action) {

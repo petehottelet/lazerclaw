@@ -69,9 +69,9 @@
 
 ### Setup
 
-1. **Clone the repository:**
+1. **Clone the repository:** (replace with your repo URL after you push)
    ```bash
-   git clone https://github.com/petehottelet/lazerclaw.git
+   git clone https://github.com/YOUR_USERNAME/lazerclaw.git
    cd lazerclaw
    ```
 
@@ -110,9 +110,11 @@
 ```bash
 npm i -g vercel
 vercel
-# Set environment variables in Vercel project settings
+# Set environment variables in Vercel project settings (required: JWT_SECRET; optional: ANTHROPIC_API_KEY, NANO_BANANA_API_KEY, admin vars)
 vercel --prod
 ```
+
+**Important:** Set `JWT_SECRET` in Vercel (e.g. `openssl rand -hex 32`). The in-code fallback is for local dev only and must not be used in production.
 
 ## Project Structure
 

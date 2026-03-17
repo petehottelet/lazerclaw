@@ -284,7 +284,7 @@ export default function AuthGate({ onAuth, onShowAbout }) {
 
   return (
     <div
-      className="h-screen w-screen flex flex-col items-center justify-center relative overflow-hidden"
+      className="min-h-screen w-full flex flex-col items-center relative overflow-x-hidden overflow-y-auto"
       style={{
         background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%)',
       }}
@@ -307,9 +307,10 @@ export default function AuthGate({ onAuth, onShowAbout }) {
         }}
       />
 
-      {/* Giant Logo with Lightning Animation - ABOVE the form */}
-      <div className="relative mb-4">
-        {/* The Logo with Canvas Lightning Overlay */}
+      {/* Content wrapper — flows from top, extra bottom padding so Login never piles on About */}
+      <div className="flex flex-col items-center justify-start w-full min-w-0 pt-6 pb-32 px-4">
+      {/* Giant Logo with Lightning Animation - ABOVE the form — scales on small viewports */}
+      <div className="relative mb-4 flex-shrink-0" style={{ maxWidth: '90vw' }}>
         <div className="relative" style={{ display: 'inline-block' }}>
           <img
             ref={logoRef}
@@ -318,7 +319,9 @@ export default function AuthGate({ onAuth, onShowAbout }) {
             style={{
               display: 'block',
               height: 350,
-              maxWidth: '90vw',
+              maxHeight: 'min(350px, 38vh)',
+              maxWidth: '100%',
+              width: 'auto',
               objectFit: 'contain',
               filter: logoAnimated
                 ? 'drop-shadow(0 0 30px rgba(139, 92, 246, 0.6)) drop-shadow(0 0 60px rgba(6, 182, 212, 0.4)) drop-shadow(0 0 100px rgba(139, 92, 246, 0.3))'
@@ -390,7 +393,7 @@ export default function AuthGate({ onAuth, onShowAbout }) {
         )}
       </div>
 
-      {/* Tagline - Heavy Metal Chrome Effect */}
+      {/* Tagline - matches welcome: Metal Mania chrome, 1.3x larger (14px → ~18px) */}
       <div
         className="text-center mb-6"
         style={{
@@ -398,28 +401,30 @@ export default function AuthGate({ onAuth, onShowAbout }) {
         }}
       >
         <div
-          className="text-sm font-bold tracking-wider"
+          className="tracking-wider"
           style={{
+            fontSize: '18px',
+            fontFamily: "'Metal Mania', cursive",
             background: 'linear-gradient(180deg, #e8e8e8 0%, #ffffff 20%, #b8b8b8 40%, #8a8a8a 50%, #b8b8b8 60%, #ffffff 80%, #d0d0d0 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             filter: 'drop-shadow(0 1px 0 rgba(0,0,0,0.8)) drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
-            textShadow: '0 0 20px rgba(255,255,255,0.2)',
-            letterSpacing: '0.15em',
+            letterSpacing: '0.12em',
             textTransform: 'uppercase',
           }}
         >
           The World's First & Only Heavy Metal
         </div>
         <div
-          className="text-sm font-bold tracking-wider"
+          className="tracking-wider"
           style={{
+            fontSize: '18px',
+            fontFamily: "'Metal Mania', cursive",
             background: 'linear-gradient(180deg, #e8e8e8 0%, #ffffff 20%, #b8b8b8 40%, #8a8a8a 50%, #b8b8b8 60%, #ffffff 80%, #d0d0d0 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             filter: 'drop-shadow(0 1px 0 rgba(0,0,0,0.8)) drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
-            textShadow: '0 0 20px rgba(255,255,255,0.2)',
-            letterSpacing: '0.15em',
+            letterSpacing: '0.12em',
             textTransform: 'uppercase',
           }}
         >
@@ -427,10 +432,10 @@ export default function AuthGate({ onAuth, onShowAbout }) {
         </div>
       </div>
 
-      {/* Login Form */}
+      {/* Login Form — responsive width and padding */}
       <form
         onSubmit={submit}
-        className="relative rounded-2xl p-8 w-96 flex flex-col gap-4"
+        className="relative rounded-2xl w-full max-w-[24rem] min-w-0 flex flex-col gap-4 p-4 sm:p-6 md:p-8"
         style={{
           background: 'rgba(15, 15, 25, 0.9)',
           border: '1px solid rgba(139, 92, 246, 0.3)',
@@ -572,8 +577,10 @@ export default function AuthGate({ onAuth, onShowAbout }) {
         )}
       </form>
 
+      </div>{/* end content wrapper */}
+
       {/* Bottom About link */}
-      <div className="absolute bottom-6 text-center">
+      <div className="absolute bottom-6 left-0 right-0 text-center">
         <button
           onClick={onShowAbout}
           className="transition-all duration-200"

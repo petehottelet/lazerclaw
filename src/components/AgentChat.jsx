@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 import { buildAgentSystemPrompt, serializeCanvasForAgent } from '../utils/agentPrompt'
-import { executeActions } from '../utils/agentExecutor'
+import { executeActions, addImageFromUrlToCanvas } from '../utils/agentExecutor'
+import { generateImage as generateImageApi } from '../utils/aiImageApi'
 
 // ─── REALISTIC LIGHTNING BOLT GENERATION FOR DIAMOND PERIMETER ─────────────
 function generatePerimeterBolt(x1, y1, x2, y2, detail = 4) {
@@ -498,8 +500,12 @@ function ClawPfp({ size = 36, className = '' }) {
   )
 }
 
-function MessageBubble({ message, darkMode }) {
+function MessageBubble({ message, darkMode, onAddToDesign, canvasState }) {
   const isUser = message.role === 'user'
+  const handleAddToDesign = useCallback((preview) => {
+    if (!preview || preview.added || !onAddToDesign || !canvasState?.canvasRef?.current) return
+    onAddToDesign(preview)
+  }, [onAddToDesign, canvasState])
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3`}>
       {!isUser && (
@@ -517,6 +523,37 @@ function MessageBubble({ message, darkMode }) {
         }
       >
         {message.content}
+        {message.imagePreviews && message.imagePreviews.length > 0 && (
+          <div className="mt-2 space-y-2">
+            {message.imagePreviews.map((preview) => (
+              <div key={preview.id} className="rounded-lg overflow-hidden border border-white/10">
+                <img
+                  src={preview.url}
+                  alt="Generated"
+                  className="w-full max-w-[280px] h-auto block"
+                  style={{ maxHeight: 200, objectFit: 'contain' }}
+                />
+                {preview.added ? (
+                  <div className="text-xs py-1.5 px-2 text-center" style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
+                    Added to design
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleAddToDesign(preview)}
+                    className="w-full text-xs font-medium py-2 px-3 text-center block transition-colors hover:opacity-90"
+                    style={{
+                      color: '#0ea5e9',
+                      background: darkMode ? 'rgba(14,165,233,0.15)' : 'rgba(14,165,233,0.12)',
+                    }}
+                  >
+                    Add to design
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
         {message.actionSummary && (
           <div className={`mt-1.5 text-xs border-t pt-1.5`} style={isUser ? { color: '#bae6fd', borderColor: 'rgba(186,230,253,0.3)' } : { color: darkMode ? '#94a3b8' : '#64748b', borderColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(14,165,233,0.15)' }}>
             {message.actionSummary}
@@ -809,7 +846,6 @@ export default function AgentChat({ canvasState }) {
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [iterativeState, setIterativeState] = useState(null)
   const [referenceImages, setReferenceImages] = useState([])
   const [orbPos, setOrbPos] = useState(null)
   const [orbReturning, setOrbReturning] = useState(false)
@@ -818,7 +854,6 @@ export default function AgentChat({ canvasState }) {
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   const fileInputRef = useRef(null)
-  const iterativeAbortRef = useRef(false)
 
   const ORB_SIZE = 120
   const DEFAULT_RIGHT = 20
@@ -899,17 +934,6 @@ export default function AgentChat({ canvasState }) {
     }
   }, [canvasState])
 
-  const isDesignRequest = useCallback((text) => {
-    const t = text.toLowerCase().trim()
-    const patterns = [
-      /^(design|create|make|build|generate|craft|produce)\s+(me\s+)?(a|an|the)\s+/,
-      /^(design|create|make|build|generate)\s+/,
-      /^i\s+(want|need|would like)\s+(a|an|the)\s+.*\s*(design|invitation|card|poster|flyer|banner|layout)/,
-      /\b(design|create|make|build)\b.*\b(invitation|card|poster|flyer|banner|layout|template|certificate|menu|resume|announcement|brochure)\b/,
-    ]
-    return patterns.some(p => p.test(t))
-  }, [])
-
   const callAgent = useCallback(async (systemPrompt, conversationMessages, snapshot, refImages) => {
     const res = await fetch('/api/agent', {
       method: 'POST',
@@ -940,223 +964,12 @@ export default function AgentChat({ canvasState }) {
     return { parsed, rawText }
   }, [])
 
-  const runIterativeDesign = useCallback(async (userText, refImages) => {
-    const canvas = canvasState.canvasRef.current
-    if (!canvas) return
-
-    iterativeAbortRef.current = false
-    setLoading(true)
-
-    const delay = (ms) => new Promise(r => setTimeout(r, ms))
-
-    try {
-      // --- STEP 0: PLAN PHASE ---
-      setMessages(prev => [...prev, { role: 'assistant', content: '🎨 Ooh, let\'s make something amazing!\n\nI\'m dreaming up the perfect palette, fonts, and layout for you...', actionSummary: 'Planning your design' }])
-
-      let canvasObjects = serializeCanvasForAgent(canvas)
-      let systemPrompt = buildAgentSystemPrompt(canvasObjects, { iterativeStep: null })
-
-      const planMessages = [
-        { role: 'user', content: userText }
-      ]
-
-      const { parsed: planResult, rawText: planRaw } = await callAgent(systemPrompt, planMessages, null, refImages)
-
-      if (iterativeAbortRef.current) return
-      if (!planResult) {
-        setMessages(prev => [...prev, { role: 'assistant', content: planRaw || 'Failed to create design plan.' }])
-        return
-      }
-
-      const designPlan = planResult.designPlan || null
-      setIterativeState({ plan: designPlan, step: 0 })
-
-      if (planResult.actions?.length > 0) {
-        await executeActions(canvas, planResult.actions, canvasState)
-      }
-
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: planResult.message || 'Design plan created.',
-        actionSummary: planResult.actions?.length ? `Step 1: Executed ${planResult.actions.length} action(s)` : 'Step 1: Plan created',
-      }])
-
-      if (planResult.designComplete) {
-        await runFinalRating(designPlan)
-        return
-      }
-
-      await delay(600)
-
-      // --- STEPS 1-N: BUILD PHASE ---
-      const MAX_STEPS = 8
-      let stepNum = 1
-
-      while (stepNum <= MAX_STEPS && !iterativeAbortRef.current) {
-        const snapshot = takeSnapshot()
-        if (!snapshot) break
-
-        canvasObjects = serializeCanvasForAgent(canvas)
-        systemPrompt = buildAgentSystemPrompt(canvasObjects, {
-          iterativeStep: 'continue',
-          iterativePlan: designPlan,
-        })
-
-        const stepMessages = [
-          { role: 'user', content: userText },
-          { role: 'assistant', content: planResult.message || '' },
-          { role: 'user', content: `Continue building the design. This is build step ${stepNum + 1}. Look at the canvas screenshot and add the next layer of elements according to the plan.`, snapshot },
-        ]
-
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: `✨ Adding more magic — layer ${stepNum + 1} coming right up!`,
-          actionSummary: `Building layer ${stepNum + 1}`,
-        }])
-
-        const { parsed: stepResult, rawText: stepRaw } = await callAgent(systemPrompt, stepMessages, snapshot, null)
-
-        if (iterativeAbortRef.current) return
-        if (!stepResult) {
-          setMessages(prev => [...prev, { role: 'assistant', content: stepRaw || 'Step failed.' }])
-          break
-        }
-
-        if (stepResult.actions?.length > 0) {
-          await executeActions(canvas, stepResult.actions, canvasState)
-        }
-
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: stepResult.message || `Step ${stepNum + 1} complete.`,
-          actionSummary: stepResult.actions?.length ? `Step ${stepNum + 1}: Executed ${stepResult.actions.length} action(s)` : null,
-        }])
-
-        setIterativeState(prev => ({ ...prev, step: stepNum }))
-
-        if (stepResult.designComplete) break
-        if (!stepResult.stepComplete && !stepResult.actions?.length) break
-
-        stepNum++
-        await delay(600)
-      }
-
-      if (iterativeAbortRef.current) return
-
-      // --- REFINE PHASE ---
-      await delay(400)
-      await runRefinement(userText, designPlan)
-
-    } catch (err) {
-      console.error('Design process error:', err)
-      setMessages(prev => [...prev, { role: 'assistant', content: `Design process encountered an error: ${err.message}` }])
-    } finally {
-      setLoading(false)
-      setIterativeState(null)
-      setReferenceImages([])
-    }
-  }, [canvasState, takeSnapshot, callAgent])
-
-  const runRefinement = useCallback(async (userText, designPlan) => {
-    const canvas = canvasState.canvasRef.current
-    if (!canvas) return
-
-    setMessages(prev => [...prev, {
-      role: 'assistant',
-      content: '🔍 Almost there! Let me fine-tune a few things to make this *chef\'s kiss*...',
-      actionSummary: 'Polishing the details',
-    }])
-
-    const snapshot = takeSnapshot()
-    const canvasObjects = serializeCanvasForAgent(canvas)
-    const systemPrompt = buildAgentSystemPrompt(canvasObjects, {
-      iterativeStep: 'refine',
-      iterativePlan: designPlan,
-    })
-
-    const refineMessages = [
-      { role: 'user', content: `Original request: "${userText}". The design layout is now complete. Please review the screenshot and refine.`, snapshot },
-    ]
-
-    try {
-      const { parsed, rawText } = await callAgent(systemPrompt, refineMessages, snapshot, null)
-
-      if (parsed) {
-        if (parsed.actions?.length > 0) {
-          await executeActions(canvas, parsed.actions, canvasState)
-        }
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: parsed.message || 'Refinement complete.',
-          actionSummary: parsed.actions?.length ? `Refined: ${parsed.actions.length} adjustment(s)` : 'No adjustments needed',
-        }])
-      }
-
-      await runFinalRating(designPlan)
-
-    } catch (err) {
-      console.error('Refinement error:', err)
-    }
-  }, [canvasState, takeSnapshot, callAgent])
-
-  const runFinalRating = useCallback(async (designPlan) => {
-    const canvas = canvasState.canvasRef.current
-    if (!canvas) return
-
-    const delay = (ms) => new Promise(r => setTimeout(r, ms))
-    await delay(500)
-
-    const snapshot = takeSnapshot()
-    if (!snapshot) return
-
-    const canvasObjects = serializeCanvasForAgent(canvas)
-    const systemPrompt = buildAgentSystemPrompt(canvasObjects, {
-      iterativeStep: 'rate',
-      iterativePlan: designPlan,
-    })
-
-    const rateMessages = [
-      { role: 'user', content: 'Rate this final design and apply improvements if needed.', snapshot },
-    ]
-
-    setMessages(prev => [...prev, {
-      role: 'assistant',
-      content: '💯 Let me take a final look and make sure everything is gorgeous...',
-      actionSummary: 'Final quality check',
-    }])
-
-    try {
-      const { parsed, rawText } = await callAgent(systemPrompt, rateMessages, snapshot, null)
-
-      if (parsed) {
-        if (parsed.actions?.length > 0) {
-          await executeActions(canvas, parsed.actions, canvasState)
-        }
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: parsed.message || 'Rating complete.',
-          actionSummary: parsed.actions?.length ? `Applied ${parsed.actions.length} improvement(s)` : 'Design finalized',
-        }])
-      } else {
-        setMessages(prev => [...prev, { role: 'assistant', content: rawText || 'Rating complete.' }])
-      }
-
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: '✨ Design complete! Feel free to ask me to make any changes or create something new.',
-      }])
-    } catch (err) {
-      console.error('Rating error:', err)
-    }
-  }, [canvasState, takeSnapshot, callAgent])
-
   const sendMessage = useCallback(async (userText, includeSnapshot = false) => {
     if (!userText.trim() || loading) return
 
     const canvas = canvasState.canvasRef.current
     if (!canvas) return
 
-    // Easter egg: "Reign in Blood" triggers blood rain effect
     if (userText.toLowerCase().includes('reign in blood') || userText.toLowerCase().includes('raining blood')) {
       setBloodRain(true)
       setTimeout(() => setBloodRain(false), 8000)
@@ -1167,17 +980,11 @@ export default function AgentChat({ canvasState }) {
 
     setMessages(prev => [...prev, userMessage])
     setInput('')
-
-    if (isDesignRequest(userText) && !includeSnapshot) {
-      await runIterativeDesign(userText.trim(), currentRefImages)
-      return
-    }
+    setLoading(true)
 
     const canvasObjects = serializeCanvasForAgent(canvas)
     const systemPrompt = buildAgentSystemPrompt(canvasObjects)
     const snapshot = includeSnapshot ? takeSnapshot() : null
-
-    setLoading(true)
 
     const conversationMessages = [...messages.filter(m => m.role !== 'system'), userMessage].map(m => ({
       role: m.role,
@@ -1189,26 +996,45 @@ export default function AgentChat({ canvasState }) {
 
       if (parsed && parsed.message) {
         let actionSummary = null
-        if (parsed.actions && parsed.actions.length > 0) {
-          const results = await executeActions(canvas, parsed.actions, canvasState)
+        const imagePreviews = []
+        const actions = parsed.actions || []
+        const imageActions = actions.filter(a => a.type === 'generateImage')
+        const otherActions = actions.filter(a => a.type !== 'generateImage')
+
+        if (otherActions.length > 0) {
+          const results = await executeActions(canvas, otherActions, canvasState)
           const successes = results.filter(r => r.success).length
-          actionSummary = `Executed ${successes}/${results.length} actions`
+          actionSummary = `Executed ${successes}/${otherActions.length} actions`
+        }
+
+        for (const action of imageActions) {
+          try {
+            const data = await generateImageApi({
+              prompt: action.prompt || '',
+              aspectRatio: action.aspectRatio || '1:1',
+              addMetal: true,
+            })
+            const url = data.urls?.[0]
+            if (url) {
+              imagePreviews.push({ id: uuidv4(), url, action, added: false })
+            }
+          } catch (err) {
+            console.warn('Image generation failed:', err)
+          }
+        }
+
+        if (imagePreviews.length > 0 && !actionSummary) {
+          actionSummary = `Generated ${imagePreviews.length} image(s)`
+        } else if (imagePreviews.length > 0) {
+          actionSummary = (actionSummary ? actionSummary + '; ' : '') + `${imagePreviews.length} image(s) generated`
         }
 
         setMessages(prev => [...prev, {
           role: 'assistant',
           content: parsed.message,
           actionSummary,
+          ...(imagePreviews.length > 0 ? { imagePreviews } : {}),
         }])
-
-        if (parsed.shouldRate) {
-          setTimeout(async () => {
-            const ratingSnapshot = takeSnapshot()
-            if (ratingSnapshot) {
-              await runFinalRating(null)
-            }
-          }, 500)
-        }
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: rawText || 'I received an empty response. Please try again.' }])
       }
@@ -1219,7 +1045,7 @@ export default function AgentChat({ canvasState }) {
       setLoading(false)
       setReferenceImages([])
     }
-  }, [canvasState, loading, messages, takeSnapshot, referenceImages, isDesignRequest, runIterativeDesign, callAgent, runFinalRating])
+  }, [canvasState, loading, messages, takeSnapshot, referenceImages, callAgent])
 
   const isImageFile = (file) => {
     const t = file.type || ''
@@ -1287,6 +1113,19 @@ export default function AgentChat({ canvasState }) {
     }
   }
 
+  const handleAddToDesign = useCallback((preview) => {
+    const canvas = canvasState.canvasRef.current
+    if (!canvas || !preview?.url || preview.added) return
+    canvasState.saveUndoState()
+    addImageFromUrlToCanvas(canvas, preview.url, preview.action, canvasState).then(() => {
+      setMessages(prev => prev.map(msg => {
+        if (!msg.imagePreviews) return msg
+        const next = msg.imagePreviews.map(p => p.id === preview.id ? { ...p, added: true } : p)
+        return { ...msg, imagePreviews: next }
+      }))
+    })
+  }, [canvasState])
+
   return (
     <>
       <style>{`
@@ -1305,24 +1144,30 @@ export default function AgentChat({ canvasState }) {
             transform-origin: bottom center;
             filter: brightness(3) saturate(0.5);
           }
-          25% {
-            opacity: 1;
-            transform: translateY(-12px) scaleY(1.06) scaleX(1.02);
+          18% {
+            opacity: 0.85;
+            transform: translateY(20px) scaleY(0.6) scaleX(0.85);
             transform-origin: bottom center;
-            filter: brightness(1.8) saturate(0.7);
+            filter: brightness(2.2) saturate(0.65);
           }
-          45% {
+          38% {
             opacity: 1;
-            transform: translateY(4px) scaleY(0.98) scaleX(1);
-            filter: brightness(1.2) saturate(0.9);
+            transform: translateY(-8px) scaleY(1.04) scaleX(1.01);
+            transform-origin: bottom center;
+            filter: brightness(1.6) saturate(0.85);
           }
-          65% {
-            transform: translateY(-2px) scaleY(1.01) scaleX(1);
-            filter: brightness(1.05);
+          55% {
+            opacity: 1;
+            transform: translateY(2px) scaleY(0.99) scaleX(1);
+            filter: brightness(1.25) saturate(0.95);
           }
-          80% {
-            transform: translateY(1px) scaleY(1) scaleX(1);
-            filter: brightness(1);
+          72% {
+            transform: translateY(-1px) scaleY(1.005) scaleX(1);
+            filter: brightness(1.08);
+          }
+          88% {
+            transform: translateY(0.5px) scaleY(1) scaleX(1);
+            filter: brightness(1.02);
           }
           100% {
             opacity: 1;
@@ -1798,7 +1643,7 @@ export default function AgentChat({ canvasState }) {
       {isOpen && (() => {
         const chatW = 380, chatH = 560
         const isDark = canvasState.darkMode
-        let chatStyle = { height: chatH, maxHeight: 'calc(100vh - 80px)', zIndex: 10000, animation: 'agentLightningArrive 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)', transformOrigin: 'bottom center', border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(14,165,233,0.2)', background: isDark ? '#0f172a' : '#f8fdff' }
+        let chatStyle = { height: chatH, maxHeight: 'calc(100vh - 80px)', zIndex: 10000, animation: 'agentLightningArrive 0.75s cubic-bezier(0.25, 0.46, 0.45, 0.94)', transformOrigin: 'bottom center', border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(14,165,233,0.2)', background: isDark ? '#0f172a' : '#f8fdff' }
         let computedLeft, computedTop
         const effectiveChatH = Math.min(chatH, window.innerHeight - 80)
         if (orbPos) {
@@ -1827,11 +1672,12 @@ export default function AgentChat({ canvasState }) {
         )}
         <svg width="0" height="0" style={{ position: 'absolute' }}>
           <defs>
-            <filter id="underwater-warp" x="-3%" y="-3%" width="106%" height="106%">
-              <feTurbulence type="turbulence" baseFrequency="0.005 0.008" numOctaves="2" seed={0} result="wave">
-                <animate attributeName="seed" from="0" to="50" dur="20s" repeatCount="indefinite" />
+            {/* Glycerine-style fluid: larger waves, slower motion, smoother displacement */}
+            <filter id="underwater-warp" x="-8%" y="-8%" width="116%" height="116%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.002 0.003" numOctaves="2" seed={0} result="wave">
+                <animate attributeName="seed" from="0" to="40" dur="35s" repeatCount="indefinite" />
               </feTurbulence>
-              <feDisplacementMap in="SourceGraphic" in2="wave" scale="1.5" xChannelSelector="R" yChannelSelector="G" />
+              <feDisplacementMap in="SourceGraphic" in2="wave" scale="4" xChannelSelector="R" yChannelSelector="G" />
             </filter>
           </defs>
         </svg>
@@ -1849,7 +1695,7 @@ export default function AgentChat({ canvasState }) {
                 <ClawPfp size={36} />
                 <div>
                   <div className="text-white font-semibold text-sm">Dr. Claw</div>
-                  <div className="text-xs" style={{ color: '#c4b5fd' }}>First & Only Design Tool for Lobsters™</div>
+                  <div className="text-xs" style={{ color: '#c4b5fd' }}>Claw Expert</div>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -1869,9 +1715,7 @@ export default function AgentChat({ canvasState }) {
                 </button>
                 <button
                   onClick={() => {
-                    iterativeAbortRef.current = true
                     setMessages([{ role: 'assistant', content: "Hey dude! I'm Dr. Claw, the most metal crustacean design assistant in the seven seas. Tell me what you'd like to create and I'll bring it to life, man — with LIGHTNING SPEED! The Claw abides. 🦞⚡" }])
-                    setIterativeState(null)
                     setReferenceImages([])
                   }}
                   className="w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-white/80 hover:text-white transition-colors"
@@ -1898,7 +1742,13 @@ export default function AgentChat({ canvasState }) {
 
           <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0" style={{ background: isDark ? 'linear-gradient(180deg, #0f172a 0%, #111827 40%, #1e293b 100%)' : 'linear-gradient(180deg, #f0fdfa 0%, #f8fafc 40%, #ffffff 100%)' }}>
             {messages.map((msg, i) => (
-              <MessageBubble key={i} message={msg} darkMode={isDark} />
+              <MessageBubble
+                key={i}
+                message={msg}
+                darkMode={isDark}
+                onAddToDesign={handleAddToDesign}
+                canvasState={canvasState}
+              />
             ))}
             {loading && <TypingIndicator />}
             <div ref={messagesEndRef} />
@@ -1923,20 +1773,6 @@ export default function AgentChat({ canvasState }) {
                   </div>
                 ))}
                 <div className={`text-[10px] self-end pb-0.5 ${isDark ? 'text-cyan-400' : 'text-cyan-600'}`}>Reference images attached</div>
-              </div>
-            )}
-            {iterativeState && (
-              <div className="flex items-center gap-2 mb-2 px-1">
-                <div className={`flex-1 h-1 rounded-full overflow-hidden ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${Math.min(100, ((iterativeState.step + 1) / 6) * 100)}%`,
-                      background: 'linear-gradient(90deg, #2dd4bf, #0ea5e9)',
-                    }}
-                  />
-                </div>
-                <span className={`text-[10px] whitespace-nowrap ${isDark ? 'text-cyan-400' : 'text-cyan-600'}`}>Step {iterativeState.step + 1}</span>
               </div>
             )}
             <form onSubmit={handleSubmit} className="flex items-end gap-2">

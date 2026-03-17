@@ -3,82 +3,86 @@ import { Rect, Circle, Ellipse, Triangle, Polygon, Path, FabricImage, Group, loa
 import { v4 as uuidv4 } from 'uuid'
 import { VECTOR_SHAPE_CATEGORIES } from '../elements/vectorShapes'
 
+// Single filled style for all shapes: one fill color, no stroke
+const SHAPE_FILL = '#C8C4BE'
+const SHAPE_OPTS = { stroke: 'transparent', strokeWidth: 0 }
+
 const SHAPES = [
   {
     id: 'rectangle',
     label: 'Rectangle',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><rect x="3" y="6" width="22" height="16" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>,
-    create: () => new Rect({ width: 120, height: 80, fill: '#C8C4BE', rx: 0, ry: 0, _dtoolId: uuidv4() }),
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><rect x="3" y="6" width="22" height="16" rx="1" fill="currentColor" /></svg>,
+    create: () => new Rect({ width: 120, height: 80, fill: SHAPE_FILL, rx: 0, ry: 0, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
   },
   {
     id: 'square',
     label: 'Square',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><rect x="4" y="4" width="20" height="20" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>,
-    create: () => new Rect({ width: 100, height: 100, fill: '#C8C4BE', _dtoolId: uuidv4() }),
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><rect x="4" y="4" width="20" height="20" rx="1" fill="currentColor" /></svg>,
+    create: () => new Rect({ width: 100, height: 100, fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
   },
   {
     id: 'rounded_rect',
     label: 'Rounded Rectangle',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><rect x="3" y="6" width="22" height="16" rx="5" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>,
-    create: () => new Rect({ width: 120, height: 80, fill: '#C8C4BE', rx: 12, ry: 12, _dtoolId: uuidv4() }),
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><rect x="3" y="6" width="22" height="16" rx="5" fill="currentColor" /></svg>,
+    create: () => new Rect({ width: 120, height: 80, fill: SHAPE_FILL, rx: 12, ry: 12, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
   },
   {
     id: 'circle',
     label: 'Circle',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="10" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>,
-    create: () => new Circle({ radius: 50, fill: '#C8C4BE', _dtoolId: uuidv4() }),
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="10" fill="currentColor" /></svg>,
+    create: () => new Circle({ radius: 50, fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
   },
   {
     id: 'ellipse',
     label: 'Ellipse',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><ellipse cx="14" cy="14" rx="12" ry="8" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>,
-    create: () => new Ellipse({ rx: 60, ry: 40, fill: '#C8C4BE', _dtoolId: uuidv4() }),
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><ellipse cx="14" cy="14" rx="12" ry="8" fill="currentColor" /></svg>,
+    create: () => new Ellipse({ rx: 60, ry: 40, fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
   },
   {
     id: 'triangle',
     label: 'Triangle',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,4 3,24 25,24" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>,
-    create: () => new Triangle({ width: 100, height: 90, fill: '#C8C4BE', _dtoolId: uuidv4() }),
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,4 3,24 25,24" fill="currentColor" /></svg>,
+    create: () => new Triangle({ width: 100, height: 90, fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
   },
   {
     id: 'diamond',
     label: 'Diamond',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 25,14 14,25 3,14" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 25,14 14,25 3,14" fill="currentColor" /></svg>,
     create: () => new Polygon(
       [{ x: 50, y: 0 }, { x: 100, y: 50 }, { x: 50, y: 100 }, { x: 0, y: 50 }],
-      { fill: '#C8C4BE', _dtoolId: uuidv4() }
+      { fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }
     ),
   },
   {
     id: 'pentagon',
     label: 'Pentagon',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 25,10.5 21,23 7,23 3,10.5" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 25,10.5 21,23 7,23 3,10.5" fill="currentColor" /></svg>,
     create: () => {
       const r = 50
       const pts = Array.from({ length: 5 }, (_, i) => {
         const a = (Math.PI * 2 * i) / 5 - Math.PI / 2
         return { x: r + r * Math.cos(a), y: r + r * Math.sin(a) }
       })
-      return new Polygon(pts, { fill: '#C8C4BE', _dtoolId: uuidv4() })
+      return new Polygon(pts, { fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() })
     },
   },
   {
     id: 'hexagon',
     label: 'Hexagon',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 24,8.5 24,19.5 14,25 4,19.5 4,8.5" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 24,8.5 24,19.5 14,25 4,19.5 4,8.5" fill="currentColor" /></svg>,
     create: () => {
       const r = 50
       const pts = Array.from({ length: 6 }, (_, i) => {
         const a = (Math.PI * 2 * i) / 6 - Math.PI / 2
         return { x: r + r * Math.cos(a), y: r + r * Math.sin(a) }
       })
-      return new Polygon(pts, { fill: '#C8C4BE', _dtoolId: uuidv4() })
+      return new Polygon(pts, { fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() })
     },
   },
   {
     id: 'star',
     label: 'Star',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 17,11 25,11 19,16 21,24 14,20 7,24 9,16 3,11 11,11" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 17,11 25,11 19,16 21,24 14,20 7,24 9,16 3,11 11,11" fill="currentColor" /></svg>,
     create: () => {
       const outer = 50, inner = 22
       const pts = Array.from({ length: 10 }, (_, i) => {
@@ -86,28 +90,28 @@ const SHAPES = [
         const a = (Math.PI * 2 * i) / 10 - Math.PI / 2
         return { x: outer + r * Math.cos(a), y: outer + r * Math.sin(a) }
       })
-      return new Polygon(pts, { fill: '#C8C4BE', _dtoolId: uuidv4() })
+      return new Polygon(pts, { fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() })
     },
   },
   {
     id: 'heart',
     label: 'Heart',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><path d="M14 24s-9-5.5-9-12a5 5 0 019-3 5 5 0 019 3c0 6.5-9 12-9 12z" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><path d="M14 24s-9-5.5-9-12a5 5 0 019-3 5 5 0 019 3c0 6.5-9 12-9 12z" fill="currentColor" /></svg>,
     create: () => new Path(
       'M 50 30 C 50 10, 90 0, 90 30 C 90 60, 50 90, 50 90 C 50 90, 10 60, 10 30 C 10 0, 50 10, 50 30 Z',
-      { fill: '#C8C4BE', _dtoolId: uuidv4() }
+      { fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }
     ),
   },
   {
     id: 'arrow_right',
     label: 'Arrow',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="3,10 18,10 18,5 25,14 18,23 18,18 3,18" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="3,10 18,10 18,5 25,14 18,23 18,18 3,18" fill="currentColor" /></svg>,
     create: () => new Polygon(
       [
         { x: 0, y: 30 }, { x: 70, y: 30 }, { x: 70, y: 10 },
         { x: 100, y: 50 }, { x: 70, y: 90 }, { x: 70, y: 70 }, { x: 0, y: 70 },
       ],
-      { fill: '#C8C4BE', _dtoolId: uuidv4() }
+      { fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }
     ),
   },
 ]

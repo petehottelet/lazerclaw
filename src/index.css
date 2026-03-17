@@ -14,7 +14,8 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  font-family: 'Inter', sans-serif;
+  /* Default UI font: Inter with safe system fallbacks (never Comic Sans) */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 /* New Rocker font for headlines and buttons */

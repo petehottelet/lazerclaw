@@ -330,7 +330,7 @@ const ToolBtn = ({ children, onClick, disabled, active, title, style, dm = true 
   </button>
 )
 
-function ToolDropdown({ label, icon, children, dm }) {
+function ToolDropdown({ label, icon, children, dm, iconOnly }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   useEffect(() => {
@@ -340,9 +340,9 @@ function ToolDropdown({ label, icon, children, dm }) {
     return () => document.removeEventListener('mousedown', h)
   }, [open])
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative shrink-0" ref={ref}>
       <button
-        className={`tb-btn flex flex-col items-center justify-center px-2 py-1 rounded text-xs gap-0.5 transition-colors cursor-pointer
+        className={`tb-btn flex flex-col items-center justify-center ${iconOnly ? 'px-1.5 w-8' : 'px-2'} py-1 rounded text-xs gap-0.5 transition-colors cursor-pointer
           ${open
             ? (dm ? 'bg-blue-500/30 text-white' : 'bg-blue-500/20 text-blue-700')
             : (dm ? 'text-gray-300 hover:bg-white/10 hover:text-white' : 'text-gray-600 hover:bg-black/5 hover:text-gray-900')}`}
@@ -350,7 +350,7 @@ function ToolDropdown({ label, icon, children, dm }) {
         title={label}
       >
         {icon}
-        <span className="tb-label">{label}</span>
+        {!iconOnly && <span className="tb-label">{label}</span>}
       </button>
       {open && (
         <div
@@ -1521,6 +1521,10 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
   } = canvasState
 
   const toolbarRef = useRef(null)
+  const logoImgRef = useRef(null)
+  const logoShimmerRef = useRef(null)
+  const logoShimmer2Ref = useRef(null)
+  const [logoDims, setLogoDims] = useState({ w: 0, h: 0 })
   const [collapse, setCollapse] = useState(0)
   const [musicPlaying, setMusicPlaying] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
@@ -1550,19 +1554,66 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
     }
   }
 
+  // Condense earlier so nav never overflows off the right edge
   useEffect(() => {
     const el = toolbarRef.current
     if (!el) return
     const ro = new ResizeObserver(([e]) => {
       const w = e.contentRect.width
-      if (w >= 1400) setCollapse(0)
-      else if (w >= 1050) setCollapse(1)
-      else if (w >= 750) setCollapse(2)
+      if (w >= 1280) setCollapse(0)
+      else if (w >= 920) setCollapse(1)
+      else if (w >= 600) setCollapse(2)
       else setCollapse(3)
     })
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
+
+  // Track logo dimensions for lightning overlay
+  useEffect(() => {
+    const img = logoImgRef.current
+    if (!img) return
+    const measure = () => {
+      if (img.offsetWidth && img.offsetHeight) setLogoDims({ w: img.offsetWidth, h: img.offsetHeight })
+    }
+    measure()
+    img.addEventListener('load', measure)
+    const ro = new ResizeObserver(measure)
+    ro.observe(img)
+    return () => { img.removeEventListener('load', measure); ro.disconnect() }
+  }, [])
+
+  // Periodic shimmer sweep across toolbar logo
+  useEffect(() => {
+    if (!darkMode) return
+    let timer
+    function sweepEl(el, width, duration) {
+      el.style.width = width + '%'
+      el.style.transition = 'none'
+      el.style.left = '-120%'
+      el.style.opacity = '1'
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          el.style.transition = `left ${duration}s ease-in-out, opacity ${duration}s ease-in-out`
+          el.style.left = '120%'
+          setTimeout(() => { el.style.opacity = '0' }, duration * 750)
+        })
+      })
+    }
+    function triggerShimmer() {
+      const el = logoShimmerRef.current
+      const el2 = logoShimmer2Ref.current
+      if (el) {
+        sweepEl(el, 50 + Math.random() * 30, 0.3 + Math.random() * 0.12)
+        if (el2 && Math.random() < 0.3) {
+          setTimeout(() => sweepEl(el2, 25 + Math.random() * 25, 0.25 + Math.random() * 0.1), 50 + Math.random() * 100)
+        }
+      }
+      timer = setTimeout(triggerShimmer, 4000 + Math.random() * 8000)
+    }
+    timer = setTimeout(triggerShimmer, 2000 + Math.random() * 3000)
+    return () => clearTimeout(timer)
+  }, [darkMode])
 
   const handleAddText = () => {
     const canvas = canvasRef.current
@@ -1643,7 +1694,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
   )
 
   return (
-    <div ref={toolbarRef} className={`h-[66px] border-b flex items-center px-2 pr-2 shrink-0 ${dm ? 'galaxy-header' : ''} ${collapse >= 1 ? 'tb-compact' : ''}`}
+    <div ref={toolbarRef} className={`relative z-20 h-[66px] border-b flex items-center px-2 pr-2 shrink-0 min-w-0 ${dm ? 'galaxy-header' : ''} ${collapse >= 1 ? 'tb-compact' : ''}`}
       style={{
         background: dm
           ? 'linear-gradient(180deg, #1f2937 0%, #111827 100%)'
@@ -1665,19 +1716,54 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
       {/* Left/center group — shrinkable, clips overflow */}
       <div className="flex items-center gap-1 overflow-hidden" style={{ flex: '1 1 0%', minWidth: 0 }}>
 
-      {/* Logo — always visible */}
+      {/* Logo with lightning + shimmer — always visible */}
       <div className="flex items-center gap-1.5 px-1 shrink-0 relative">
         <div className="relative" style={{ height: collapse >= 2 ? 44 : collapse >= 1 ? 51 : 53 }}>
           <img
+            ref={logoImgRef}
             src="/lazerclaw_logo.png"
             alt="LazerClaw"
             className="transition-all duration-200 hover:scale-105"
-            style={{
-              height: '100%',
-              width: 'auto',
-            }}
+            style={{ height: '100%', width: 'auto' }}
             draggable={false}
           />
+          {darkMode && logoDims.w > 0 && (
+            <LogoLightning width={logoDims.w} height={logoDims.h} darkMode={darkMode} />
+          )}
+          {darkMode && (
+            <div
+              className="absolute inset-0 pointer-events-none overflow-hidden"
+              style={{
+                WebkitMaskImage: 'url(/lazerclaw_logo.png)',
+                maskImage: 'url(/lazerclaw_logo.png)',
+                WebkitMaskSize: 'contain',
+                maskSize: 'contain',
+                WebkitMaskRepeat: 'no-repeat',
+                maskRepeat: 'no-repeat',
+                WebkitMaskPosition: 'center',
+                maskPosition: 'center',
+              }}
+            >
+              <div
+                ref={logoShimmerRef}
+                className="absolute pointer-events-none"
+                style={{
+                  top: '-20%', left: '-120%', width: '60%', height: '140%',
+                  background: 'linear-gradient(105deg, transparent 0%, transparent 30%, rgba(255,255,255,0.15) 38%, rgba(255,255,255,0.35) 44%, rgba(255,255,255,0.8) 48%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.8) 52%, rgba(255,255,255,0.35) 56%, rgba(255,255,255,0.15) 62%, transparent 70%, transparent 100%)',
+                  transform: 'skewX(-15deg)', opacity: 0, filter: 'blur(1.5px)',
+                }}
+              />
+              <div
+                ref={logoShimmer2Ref}
+                className="absolute pointer-events-none"
+                style={{
+                  top: '-20%', left: '-120%', width: '35%', height: '140%',
+                  background: 'linear-gradient(105deg, transparent 0%, transparent 30%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0.28) 44%, rgba(255,255,255,0.65) 48%, rgba(255,255,255,0.85) 50%, rgba(255,255,255,0.65) 52%, rgba(255,255,255,0.28) 56%, rgba(255,255,255,0.12) 62%, transparent 70%, transparent 100%)',
+                  transform: 'skewX(-15deg)', opacity: 0, filter: 'blur(1.5px)',
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -1686,11 +1772,11 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
       {/* Undo/Redo — always visible */}
       <ToolBtn dm={dm} onClick={undo} disabled={undoStackRef.current.length === 0} title="Undo (Ctrl+Z)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 10h13a4 4 0 010 8H7"/><path d="M3 10l4-4M3 10l4 4"/></svg>
-        <span>Undo</span>
+        {collapse < 3 && <span>Undo</span>}
       </ToolBtn>
       <ToolBtn dm={dm} onClick={redo} disabled={redoStackRef.current.length === 0} title="Redo (Ctrl+Y)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10H8a4 4 0 000 8h9"/><path d="M21 10l-4-4M21 10l-4 4"/></svg>
-        <span>Redo</span>
+        {collapse < 3 && <span>Redo</span>}
       </ToolBtn>
 
       {/* ── Level 0: everything expanded ── */}
@@ -1796,11 +1882,11 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
         </>
       )}
 
-      {/* ── Level 3: ultra-compact — everything in one dropdown ── */}
+      {/* ── Level 3: ultra-compact — everything in one "Tools" dropdown ── */}
       {collapse >= 3 && (
         <>
           <Div />
-          <ToolDropdown label="Tools" icon={ic.more} dm={dm}>
+          <ToolDropdown label="Tools" icon={ic.more} dm={dm} iconOnly>
             <DropLabel dm={dm}>Tools</DropLabel>
             <DropItem icon={ic.select} label="Select" onClick={() => setActiveTool('select')} dm={dm} />
             <DropItem icon={ic.text} label="Add Text" onClick={handleAddText} dm={dm} />
@@ -1918,8 +2004,8 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
 
       </div>{/* end left/center group */}
 
-      {/* Right group — fixed, always visible */}
-      <div className="flex items-center gap-1 shrink-0 ml-1">
+      {/* Right group — always visible, never clips off screen */}
+      <div className="flex items-center gap-1 shrink-0 ml-1 min-w-0">
 
       {/* Right side — Download with chrome effect + shimmer */}
       <DownloadButton canvasState={canvasState} collapse={collapse} />
@@ -1927,7 +2013,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
       {/* Logout button - outlined secondary CTA with chrome effect */}
       <button
         onClick={() => setShowLogoutConfirm(true)}
-        className={`${collapse >= 1 ? 'px-2.5' : 'px-5'} py-2 rounded text-sm font-bold transition-all shrink-0 flex items-center gap-2 ${collapse >= 1 ? 'ml-1' : 'ml-3'} relative overflow-hidden hover:scale-105`}
+        className={`${collapse >= 3 ? 'px-2 w-9' : collapse >= 1 ? 'px-2.5' : 'px-5'} py-2 rounded text-sm font-bold transition-all shrink-0 flex items-center justify-center gap-2 ${collapse >= 1 ? 'ml-1' : 'ml-3'} relative overflow-hidden hover:scale-105`}
         style={{
           background: dm
             ? 'linear-gradient(180deg, rgba(60,65,80,0.95) 0%, rgba(40,45,60,0.98) 100%)'
@@ -1947,7 +2033,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
           <polyline points="16 17 21 12 16 7" />
           <line x1="21" y1="12" x2="9" y2="12" />
         </svg>
-        <span className="logout-label" style={{ position: 'relative', zIndex: 1 }}>Logout</span>
+        {collapse < 3 && <span className="logout-label" style={{ position: 'relative', zIndex: 1 }}>Logout</span>}
       </button>
 
       </div>{/* end right group */}
@@ -2048,7 +2134,6 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
               </button>
               <button
                 onClick={() => {
-                  sessionStorage.removeItem('lazerclaw-intro-seen')
                   localStorage.removeItem('dtool-theme')
                   localStorage.removeItem('dtool-dark-mode')
                   window.location.reload()
