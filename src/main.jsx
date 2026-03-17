@@ -197,7 +197,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
     const c2 = canvas2Ref.current, ctx2 = c2.getContext('2d')
 
     let activeBolts = []
-    let nextSpawn = 200 + Math.random() * 600
+    let nextSpawn = 500 + Math.random() * 900
 
     function resize() {
       const rect = img.getBoundingClientRect()
@@ -224,8 +224,8 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
     function spawnBolt(W, H) {
       const [from, to] = pickPair()
       const pts = generateBolt(from.x * W, from.y * H, to.x * W, to.y * H, 4)
-      const flashDur = 0.04 + Math.random() * 0.06
-      activeBolts.push({ pts, life: 1.0, phase: 'flash', flashTimer: flashDur, fadeRate: 2.5 + Math.random() * 1.5, from, to, W, H })
+      const flashDur = 0.02 + Math.random() * 0.03
+      activeBolts.push({ pts, life: 1.0, phase: 'flash', flashTimer: flashDur, fadeRate: 6.0 + Math.random() * 4.0, from, to, W, H })
     }
 
     let lastTime = performance.now()
@@ -314,7 +314,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
           if (b.life <= 0) { activeBolts.splice(i, 1); continue }
         }
       }
-      if (activeBolts.length > 6) activeBolts.splice(0, activeBolts.length - 6)
+      if (activeBolts.length > 4) activeBolts.splice(0, activeBolts.length - 4)
 
       drawBolts(ctx1, W, H)
       drawBolts(ctx2, W, H)
@@ -338,7 +338,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
     const lc = laserCanvasRef.current, lctx = lc.getContext('2d')
 
     let laserBolts = []
-    let nextLaser = 80 + Math.random() * 200
+    let nextLaser = 400 + Math.random() * 500
 
     function resize() {
       const rect = img.getBoundingClientRect()
@@ -363,8 +363,8 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
       const pts = generateBolt(from.x * W, from.y * H, to.x * W, to.y * H, 5)
       laserBolts.push({
         pts, life: 1.0, phase: 'flash',
-        flashTimer: 0.03 + Math.random() * 0.05,
-        fadeRate: 3.0 + Math.random() * 2.0,
+        flashTimer: 0.02 + Math.random() * 0.03,
+        fadeRate: 7.0 + Math.random() * 4.0,
         from, to, W, H,
       })
     }
@@ -383,10 +383,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
       if (elapsed >= nextLaser) {
         spawnLaserBolt(W, H)
         elapsed = 0
-        nextLaser = 60 + Math.random() * 180
-        if (Math.random() < 0.5) {
-          setTimeout(() => spawnLaserBolt(W, H), 20 + Math.random() * 40)
-        }
+        nextLaser = 350 + Math.random() * 450
       }
 
       for (let i = laserBolts.length - 1; i >= 0; i--) {
@@ -402,7 +399,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
           if (b.life <= 0) { laserBolts.splice(i, 1); continue }
         }
       }
-      if (laserBolts.length > 4) laserBolts.splice(0, laserBolts.length - 4)
+      if (laserBolts.length > 3) laserBolts.splice(0, laserBolts.length - 3)
 
       lctx.save()
       lctx.globalCompositeOperation = 'lighter'
@@ -537,8 +534,8 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
       const branches = spawnBranches(pts, 0, 3)
       bolts.push({
         pts, branches, life: 1.0, phase: 'flash',
-        flashTimer: 0.08 + Math.random() * 0.08,
-        fadeRate: 1.2 + Math.random() * 0.8,
+        flashTimer: 0.04 + Math.random() * 0.04,
+        fadeRate: 4.0 + Math.random() * 2.0,
         cloudX: x1 / W,
         cloudY: 0.05 + Math.random() * 0.15,
       })
@@ -649,7 +646,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
       }
       ctx.restore()
 
-      // --- Spawn new lightning bolts ---
+      // --- Spawn new lightning bolts (throttled) ---
       if (elapsed >= nextStrike) {
         spawnBolt()
         elapsed = 0
@@ -745,8 +742,8 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
         branches,
         life: 1.0,
         phase: 'flash',
-        flashTimer: 0.08 + Math.random() * 0.08,
-        fadeRate: 1.0 + Math.random() * 0.8,
+        flashTimer: 0.04 + Math.random() * 0.04,
+        fadeRate: 4.0 + Math.random() * 2.0,
       })
     }
 
@@ -1233,147 +1230,36 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
   )
 }
 
-// Full-screen lightning storm overlay to celebrate entering the app (e.g. after "Use as Guest")
-function EntryStormOverlay({ onMidpoint, onComplete }) {
-  const canvasRef = useRef(null)
-  const rafRef = useRef(null)
+// Gentle fade overlay when entering the app (e.g. after "Use as Guest")
+function GuestFadeOverlay({ onMidpoint, onComplete }) {
   const doneRef = useRef(false)
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-
-    let bolts = []
-    let startTime = null
-    let nextSpawn = 0
-    const SPAWN_MS = 300
-    const TOTAL_MS = 700
-    const MAX_MS = 1200
-
-    function finish() {
+    onMidpoint()
+    const safety = setTimeout(() => {
       if (doneRef.current) return
       doneRef.current = true
       onComplete()
-    }
-
-    onMidpoint()
-
-    const safetyTimer = setTimeout(finish, MAX_MS)
-
-    function resize() {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
-
-    function spawnBolt() {
-      const W = canvas.width
-      const H = canvas.height
-      const x1 = W * (0.05 + Math.random() * 0.9)
-      const x2 = x1 + (Math.random() - 0.5) * 400
-      const y2 = H * (0.3 + Math.random() * 0.65)
-      const pts = generateBolt(x1, -50, x2, y2, 6)
-      bolts.push({
-        pts,
-        life: 1.0,
-        phase: 'flash',
-        flashTimer: 0.03 + Math.random() * 0.04,
-        fadeRate: 4.0 + Math.random() * 3.0,
-      })
-    }
-
-    function drawBolt(pts, alpha) {
-      ctx.shadowColor = `rgba(140,180,255,${alpha * 0.5})`
-      ctx.shadowBlur = 35
-      ctx.strokeStyle = `rgba(100,140,230,${alpha * 0.15})`
-      ctx.lineWidth = 12
-      ctx.beginPath()
-      ctx.moveTo(pts[0].x, pts[0].y)
-      for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j].x, pts[j].y)
-      ctx.stroke()
-
-      ctx.shadowColor = `rgba(200,220,255,${alpha * 0.7})`
-      ctx.shadowBlur = 16
-      ctx.strokeStyle = `rgba(220,235,255,${alpha * 0.5})`
-      ctx.lineWidth = 4
-      ctx.beginPath()
-      ctx.moveTo(pts[0].x, pts[0].y)
-      for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j].x, pts[j].y)
-      ctx.stroke()
-
-      ctx.shadowBlur = 5
-      ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.95})`
-      ctx.lineWidth = 1.5
-      ctx.beginPath()
-      ctx.moveTo(pts[0].x, pts[0].y)
-      for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j].x, pts[j].y)
-      ctx.stroke()
-      ctx.shadowBlur = 0
-    }
-
-    let lastNow = null
-    function draw(now) {
-      if (doneRef.current) return
-      if (!startTime) startTime = now
-      const elapsed = now - startTime
-      const dt = lastNow != null ? (now - lastNow) / 1000 : 0.016
-      lastNow = now
-      const W = canvas.width
-      const H = canvas.height
-
-      ctx.clearRect(0, 0, W, H)
-
-      if (elapsed < SPAWN_MS && elapsed >= nextSpawn) {
-        spawnBolt()
-        spawnBolt()
-        if (Math.random() < 0.5) spawnBolt()
-        nextSpawn = elapsed + 30 + Math.random() * 50
-      }
-
-      if (bolts.length > 8) bolts.splice(0, bolts.length - 8)
-
-      if (bolts.length > 0) {
-        ctx.save()
-        ctx.globalCompositeOperation = 'lighter'
-        for (let i = bolts.length - 1; i >= 0; i--) {
-          const b = bolts[i]
-          let alpha
-          if (b.phase === 'flash') {
-            b.flashTimer -= dt
-            if (b.flashTimer <= 0) b.phase = 'fade'
-            alpha = 0.6 + Math.random() * 0.4
-          } else {
-            b.life -= b.fadeRate * dt
-            if (b.life <= 0) { bolts.splice(i, 1); continue }
-            alpha = b.life * 0.6
-          }
-          drawBolt(b.pts, alpha)
-        }
-        ctx.restore()
-      }
-
-      if (elapsed >= TOTAL_MS && bolts.length === 0) {
-        finish()
-        return
-      }
-
-      rafRef.current = requestAnimationFrame(draw)
-    }
-
-    resize()
-    rafRef.current = requestAnimationFrame(draw)
-    window.addEventListener('resize', resize)
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
-      clearTimeout(safetyTimer)
-      window.removeEventListener('resize', resize)
-    }
+    }, 900)
+    return () => clearTimeout(safety)
   }, [onMidpoint, onComplete])
 
+  const handleAnimationEnd = useCallback(() => {
+    if (doneRef.current) return
+    doneRef.current = true
+    onComplete()
+  }, [onComplete])
+
   return (
-    <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 99999 }}>
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
-    </div>
+    <div
+      className="fixed inset-0 pointer-events-none"
+      style={{
+        zIndex: 99999,
+        background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%)',
+        animation: 'guestFadeOut 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+      }}
+      onAnimationEnd={handleAnimationEnd}
+    />
   )
 }
 
@@ -1432,7 +1318,7 @@ function Root() {
         />
       )}
       {entryStormActive && (
-        <EntryStormOverlay onMidpoint={handleStormMidpoint} onComplete={handleStormComplete} />
+        <GuestFadeOverlay onMidpoint={handleStormMidpoint} onComplete={handleStormComplete} />
       )}
     </>
   )
