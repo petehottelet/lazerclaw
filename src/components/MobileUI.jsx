@@ -1,10 +1,29 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 
 // ─── Mobile Header ───────────────────────────────────────────────────────────
-// Thin top bar: logo · undo/redo · zoom · dark mode · download
 export function MobileHeader({ canvasState, onToggleDarkMode }) {
   const { canvasRef, zoom, setZoom, undo, redo, darkMode } = canvasState
   const dm = !!darkMode
+  const [musicPlaying, setMusicPlaying] = useState(false)
+  const musicRef = useRef(null)
+
+  const toggleMusic = useCallback(() => {
+    if (!musicRef.current) {
+      musicRef.current = new Audio('/lazerclaw_theme.mp3')
+      musicRef.current.loop = true
+      musicRef.current.volume = 0.5
+    }
+    if (musicPlaying) {
+      musicRef.current.pause()
+      setMusicPlaying(false)
+    } else {
+      musicRef.current.play().then(() => setMusicPlaying(true)).catch(() => {})
+    }
+  }, [musicPlaying])
+
+  useEffect(() => {
+    return () => { if (musicRef.current) { musicRef.current.pause(); musicRef.current = null } }
+  }, [])
 
   return (
     <div
@@ -24,7 +43,7 @@ export function MobileHeader({ canvasState, onToggleDarkMode }) {
         style={{ height: 28, objectFit: 'contain' }}
       />
 
-      {/* Center: Undo / Redo */}
+      {/* Center: Undo / Redo / Zoom */}
       <div className="flex items-center gap-1">
         <MobileIconBtn icon={ICONS.undo} label="Undo" onClick={undo} dm={dm} />
         <MobileIconBtn icon={ICONS.redo} label="Redo" onClick={redo} dm={dm} />
@@ -37,8 +56,50 @@ export function MobileHeader({ canvasState, onToggleDarkMode }) {
         </span>
       </div>
 
-      {/* Right: dark mode + download placeholder */}
+      {/* Right: flame music + dark mode */}
       <div className="flex items-center gap-1">
+        <button
+          onClick={toggleMusic}
+          className="w-9 h-9 flex items-center justify-center rounded-xl relative overflow-hidden shrink-0"
+          title={musicPlaying ? 'Pause Theme Song' : 'Play Theme Song'}
+          style={{
+            background: musicPlaying
+              ? 'linear-gradient(135deg, rgba(220,80,20,0.35) 0%, rgba(245,158,11,0.4) 50%, rgba(220,80,20,0.35) 100%)'
+              : dm
+                ? 'linear-gradient(135deg, rgba(180,60,10,0.15) 0%, rgba(220,120,30,0.18) 50%, rgba(180,60,10,0.15) 100%)'
+                : 'linear-gradient(135deg, rgba(234,88,12,0.08) 0%, rgba(245,158,11,0.12) 50%, rgba(234,88,12,0.08) 100%)',
+            border: dm ? '1px solid rgba(245,158,11,0.5)' : '1px solid rgba(234,88,12,0.3)',
+            boxShadow: musicPlaying
+              ? '0 0 12px rgba(245,158,11,0.5), inset 0 0 6px rgba(245,158,11,0.25)'
+              : 'none',
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="none">
+            <defs>
+              <linearGradient id="mFireGrad" x1="0.5" y1="1" x2="0.5" y2="0">
+                <stop offset="0%" stopColor="#dc2626" />
+                <stop offset="40%" stopColor="#ea580c" />
+                <stop offset="70%" stopColor="#f59e0b" />
+                <stop offset="100%" stopColor="#fbbf24" />
+              </linearGradient>
+              <linearGradient id="mFireInner" x1="0.5" y1="1" x2="0.5" y2="0">
+                <stop offset="0%" stopColor="#f59e0b" />
+                <stop offset="60%" stopColor="#fbbf24" />
+                <stop offset="100%" stopColor="#fef3c7" />
+              </linearGradient>
+            </defs>
+            <path d="M12 23c-3.866 0-7-2.686-7-6 0-2.91 2.184-5.399 4.5-7.463C11.266 7.906 12 6.2 12 4c0 .9.75 2.293 1.5 3.5.667 1.074 1.5 2.2 1.5 3.5 0 1.657-.716 2.886-1.5 3.5.607-.456 1.5-1.6 1.5-3 0 0 2 2.1 2 5 0 3.314-2.134 6.5-5 6.5z"
+              fill="url(#mFireGrad)" fillOpacity={musicPlaying ? '1' : '0.75'} />
+            <path d="M12 23c-1.657 0-3-1.343-3-3 0-1.8 1.5-3 3-5 1.5 2 3 3.2 3 5 0 1.657-1.343 3-3 3z"
+              fill="url(#mFireInner)" fillOpacity={musicPlaying ? '0.9' : '0.5'} />
+          </svg>
+          {musicPlaying && (
+            <div className="absolute inset-0 pointer-events-none" style={{
+              background: 'linear-gradient(100deg, transparent 20%, rgba(251,191,36,0.25) 45%, rgba(245,158,11,0.35) 50%, rgba(251,191,36,0.25) 55%, transparent 80%)',
+              animation: 'fireShimmer 1.8s ease-in-out infinite',
+            }} />
+          )}
+        </button>
         <MobileIconBtn icon={ICONS.darkMode} label="Theme" onClick={onToggleDarkMode} dm={dm} />
       </div>
     </div>
