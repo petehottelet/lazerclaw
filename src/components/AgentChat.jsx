@@ -964,6 +964,19 @@ export default function AgentChat({ canvasState }) {
     return { parsed, rawText }
   }, [])
 
+  const extractImagePrompt = useCallback((text) => {
+    const t = text.trim()
+    const patterns = [
+      /^(?:generate|create|make|draw|paint|render|produce)\s+(?:me\s+)?(?:an?\s+)?(?:image|picture|photo|illustration|artwork|graphic|icon|pic)\s+(?:of\s+)?(.+)/i,
+      /^(?:generate|create|make|draw|paint|render|produce)\s+(.+)/i,
+    ]
+    for (const p of patterns) {
+      const m = t.match(p)
+      if (m) return m[1].trim()
+    }
+    return null
+  }, [])
+
   const sendMessage = useCallback(async (userText, includeSnapshot = false) => {
     if (!userText.trim() || loading) return
 
@@ -982,16 +995,39 @@ export default function AgentChat({ canvasState }) {
     setInput('')
     setLoading(true)
 
-    const canvasObjects = serializeCanvasForAgent(canvas)
-    const systemPrompt = buildAgentSystemPrompt(canvasObjects)
-    const snapshot = includeSnapshot ? takeSnapshot() : null
-
-    const conversationMessages = [...messages.filter(m => m.role !== 'system'), userMessage].map(m => ({
-      role: m.role,
-      content: m.content,
-    }))
-
     try {
+      const imagePrompt = extractImagePrompt(userText)
+      if (imagePrompt && !includeSnapshot) {
+        const data = await generateImageApi({
+          prompt: imagePrompt,
+          aspectRatio: '1:1',
+          addMetal: true,
+        })
+        const url = data.urls?.[0]
+        if (url) {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: `Shredded it, dude! Here's your image, fresh off the amp. Hit "Add to design" to drop it on the canvas! 🤘`,
+            actionSummary: 'Generated 1 image',
+            imagePreviews: [{ id: uuidv4(), url, action: { prompt: imagePrompt }, added: false }],
+          }])
+        } else {
+          setMessages(prev => [...prev, { role: 'assistant', content: 'The image generation came back empty, man. Try again with a different prompt!' }])
+        }
+        setLoading(false)
+        setReferenceImages([])
+        return
+      }
+
+      const canvasObjects = serializeCanvasForAgent(canvas)
+      const systemPrompt = buildAgentSystemPrompt(canvasObjects)
+      const snapshot = includeSnapshot ? takeSnapshot() : null
+
+      const conversationMessages = [...messages.filter(m => m.role !== 'system'), userMessage].map(m => ({
+        role: m.role,
+        content: m.content,
+      }))
+
       const { parsed, rawText } = await callAgent(systemPrompt, conversationMessages, snapshot, currentRefImages.length ? currentRefImages : null)
 
       if (parsed && parsed.message) {
@@ -1045,7 +1081,7 @@ export default function AgentChat({ canvasState }) {
       setLoading(false)
       setReferenceImages([])
     }
-  }, [canvasState, loading, messages, takeSnapshot, referenceImages, callAgent])
+  }, [canvasState, loading, messages, takeSnapshot, referenceImages, callAgent, extractImagePrompt])
 
   const isImageFile = (file) => {
     const t = file.type || ''

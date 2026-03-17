@@ -552,7 +552,7 @@ export default function DownloadButton({ canvasState, collapse = 0 }) {
         onClick={() => setOpen(!open)}
         disabled={busy}
         className={`
-          relative flex items-center justify-center gap-2 ${collapse >= 3 ? 'px-2 w-9' : collapse >= 1 ? 'px-2.5' : 'px-5'} py-2 rounded text-sm font-black uppercase transition-all duration-200 overflow-visible shrink-0
+          relative flex items-center justify-center gap-2 ${collapse >= 4 ? 'px-2 w-9' : collapse >= 1 ? 'px-2.5' : 'px-5'} py-2 rounded text-sm font-black uppercase transition-all duration-200 overflow-visible shrink-0
           ${busy ? 'cursor-wait' : 'hover:scale-105 active:scale-[0.98]'}
         `}
         style={busy ? {
@@ -573,8 +573,8 @@ export default function DownloadButton({ canvasState, collapse = 0 }) {
           <polyline points="7 10 12 15 17 10" />
           <line x1="12" y1="15" x2="12" y2="3" />
         </svg>
-        {collapse < 3 && <span className="download-label">{statusText}</span>}
-        {collapse < 3 && mp4Loading && (
+        {collapse < 4 && <span className="download-label">{statusText}</span>}
+        {collapse < 4 && mp4Loading && (
           <div className={`w-12 h-1.5 rounded-full overflow-hidden ${dm ? 'bg-gray-600' : 'bg-gray-400'}`}>
             <div
               className={`h-full rounded-full transition-all duration-300 ${dm ? 'bg-gray-300' : 'bg-white'}`}
@@ -582,7 +582,7 @@ export default function DownloadButton({ canvasState, collapse = 0 }) {
             />
           </div>
         )}
-        {collapse < 3 && !mp4Loading && (
+        {collapse < 4 && !mp4Loading && (
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`transition-transform ${open ? 'rotate-180' : ''}`}>
             <polyline points="6 9 12 15 18 9" />
           </svg>

@@ -166,9 +166,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
 
     // Returning visitor — standard delayed entrance
     const t = setTimeout(() => setAnimated(true), 100)
-    // Fallback: if something blocks the timeout (e.g. error in prod), show content after 2s so page never stays stuck
-    const fallback = setTimeout(() => setAnimated(true), 2000)
-    return () => { clearTimeout(t); clearTimeout(fallback) }
+    return () => clearTimeout(t)
   }, [introActive])
 
   // Random "thunk" — heavy impact micro-animation
@@ -895,7 +893,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
 
   return (
     <div
-      className="min-h-screen h-full max-h-screen w-full flex flex-col items-center relative overflow-x-hidden overflow-y-auto"
+      className="min-h-screen w-full flex flex-col items-center relative overflow-x-hidden overflow-y-auto"
       style={{ background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%)' }}
     >
       {/* Dark roiling cloud layers */}
@@ -1231,7 +1229,7 @@ function WelcomePage({ onEnter, onEnterAsGuest, onShowAbout, introActive }) {
 }
 
 // Full-screen lightning storm overlay to celebrate entering the app (e.g. after "Use as Guest")
-function EntryStormOverlay({ onComplete }) {
+function EntryStormOverlay({ onMidpoint, onComplete }) {
   const canvasRef = useRef(null)
   const rafRef = useRef(null)
 
@@ -1243,8 +1241,10 @@ function EntryStormOverlay({ onComplete }) {
     let bolts = []
     let startTime = null
     let nextSpawn = 0
-    const STORM_DURATION_MS = 800
-    const FADEOUT_DURATION_MS = 350
+    const SPAWN_MS = 300
+    const TOTAL_MS = 700
+
+    onMidpoint()
 
     function resize() {
       canvas.width = window.innerWidth
@@ -1262,8 +1262,8 @@ function EntryStormOverlay({ onComplete }) {
         pts,
         life: 1.0,
         phase: 'flash',
-        flashTimer: 0.04 + Math.random() * 0.05,
-        fadeRate: 0.04 + Math.random() * 0.03,
+        flashTimer: 0.03 + Math.random() * 0.04,
+        fadeRate: 0.06 + Math.random() * 0.04,
       })
     }
 
@@ -1307,14 +1307,14 @@ function EntryStormOverlay({ onComplete }) {
 
       ctx.clearRect(0, 0, W, H)
 
-      if (elapsed < STORM_DURATION_MS) {
-        if (elapsed >= nextSpawn) {
-          spawnBolt()
-          spawnBolt()
-          if (Math.random() < 0.5) spawnBolt()
-          nextSpawn = elapsed + 40 + Math.random() * 60
-        }
+      if (elapsed < SPAWN_MS && elapsed >= nextSpawn) {
+        spawnBolt()
+        spawnBolt()
+        if (Math.random() < 0.5) spawnBolt()
+        nextSpawn = elapsed + 30 + Math.random() * 50
+      }
 
+      if (bolts.length > 0) {
         ctx.save()
         ctx.globalCompositeOperation = 'lighter'
         for (let i = bolts.length - 1; i >= 0; i--) {
@@ -1334,16 +1334,9 @@ function EntryStormOverlay({ onComplete }) {
         ctx.restore()
       }
 
-      const fadeStart = STORM_DURATION_MS
-      if (elapsed >= fadeStart) {
-        const fadeElapsed = elapsed - fadeStart
-        const fade = Math.min(1, fadeElapsed / FADEOUT_DURATION_MS)
-        ctx.fillStyle = `rgba(8,8,18,${fade})`
-        ctx.fillRect(0, 0, W, H)
-        if (fade >= 1) {
-          onComplete()
-          return
-        }
+      if (elapsed >= TOTAL_MS && bolts.length === 0) {
+        onComplete()
+        return
       }
 
       rafRef.current = requestAnimationFrame(draw)
@@ -1356,7 +1349,7 @@ function EntryStormOverlay({ onComplete }) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       window.removeEventListener('resize', resize)
     }
-  }, [onComplete])
+  }, [onMidpoint, onComplete])
 
   return (
     <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 99999 }}>
@@ -1373,8 +1366,6 @@ function Root() {
   const [showWelcome, setShowWelcome] = useState(true)
   const [showAbout, setShowAbout] = useState(false)
   const [entryStormActive, setEntryStormActive] = useState(false)
-  const [curtainVisible, setCurtainVisible] = useState(false)
-  const [curtainOpaque, setCurtainOpaque] = useState(false)
   const [adminAuth, setAdminAuth] = useState(false)
   const [theme] = useState(() => {
     try { return localStorage.getItem('dtool-theme') || 'default' } catch { return 'default' }
@@ -1385,34 +1376,21 @@ function Root() {
   }, [theme])
 
   const handleEnter = useCallback(() => {
-    setCurtainVisible(true)
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => setCurtainOpaque(true))
-    })
-    setTimeout(() => {
-      setEnteredApp(true)
-      setShowWelcome(false)
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setCurtainOpaque(false))
-      })
-      setTimeout(() => setCurtainVisible(false), 500)
-    }, 450)
+    setEnteredApp(true)
+    setShowWelcome(false)
   }, [])
 
   const handleEnterAsGuest = useCallback(() => {
     setEntryStormActive(true)
   }, [])
 
-  const handleStormComplete = useCallback(() => {
-    setCurtainVisible(true)
-    setCurtainOpaque(true)
-    setEntryStormActive(false)
+  const handleStormMidpoint = useCallback(() => {
     setEnteredApp(true)
     setShowWelcome(false)
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => setCurtainOpaque(false))
-    })
-    setTimeout(() => setCurtainVisible(false), 500)
+  }, [])
+
+  const handleStormComplete = useCallback(() => {
+    setEntryStormActive(false)
   }, [])
 
   if (isAdminRoute) {
@@ -1435,18 +1413,7 @@ function Root() {
       )}
       {enteredApp && <App />}
       {entryStormActive && (
-        <EntryStormOverlay onComplete={handleStormComplete} />
-      )}
-      {curtainVisible && (
-        <div
-          className="fixed inset-0 pointer-events-none"
-          style={{
-            zIndex: 99998,
-            backgroundColor: '#080812',
-            opacity: curtainOpaque ? 1 : 0,
-            transition: 'opacity 0.4s ease-in-out',
-          }}
-        />
+        <EntryStormOverlay onMidpoint={handleStormMidpoint} onComplete={handleStormComplete} />
       )}
     </>
   )

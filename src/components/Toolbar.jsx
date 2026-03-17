@@ -1560,10 +1560,11 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
     if (!el) return
     const ro = new ResizeObserver(([e]) => {
       const w = e.contentRect.width
-      if (w >= 1280) setCollapse(0)
-      else if (w >= 920) setCollapse(1)
-      else if (w >= 600) setCollapse(2)
-      else setCollapse(3)
+      if (w >= 1400) setCollapse(0)
+      else if (w >= 1100) setCollapse(1)
+      else if (w >= 820) setCollapse(2)
+      else if (w >= 600) setCollapse(3)
+      else setCollapse(4)
     })
     ro.observe(el)
     return () => ro.disconnect()
@@ -1604,14 +1605,14 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
       const el = logoShimmerRef.current
       const el2 = logoShimmer2Ref.current
       if (el) {
-        sweepEl(el, 50 + Math.random() * 30, 0.3 + Math.random() * 0.12)
-        if (el2 && Math.random() < 0.3) {
-          setTimeout(() => sweepEl(el2, 25 + Math.random() * 25, 0.25 + Math.random() * 0.1), 50 + Math.random() * 100)
+        sweepEl(el, 40 + Math.random() * 40, 0.25 + Math.random() * 0.12)
+        if (el2 && Math.random() < 0.35) {
+          setTimeout(() => sweepEl(el2, 20 + Math.random() * 30, 0.2 + Math.random() * 0.1), 40 + Math.random() * 80)
         }
       }
-      timer = setTimeout(triggerShimmer, 4000 + Math.random() * 8000)
+      timer = setTimeout(triggerShimmer, 2500 + Math.random() * 5000)
     }
-    timer = setTimeout(triggerShimmer, 2000 + Math.random() * 3000)
+    timer = setTimeout(triggerShimmer, 400 + Math.random() * 600)
     return () => clearTimeout(timer)
   }, [darkMode])
 
@@ -1718,7 +1719,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
 
       {/* Logo with lightning + shimmer — always visible */}
       <div className="flex items-center gap-1.5 px-1 shrink-0 relative">
-        <div className="relative" style={{ height: collapse >= 2 ? 44 : collapse >= 1 ? 51 : 53 }}>
+        <div className="relative" style={{ height: collapse >= 3 ? 44 : collapse >= 1 ? 51 : 53 }}>
           <img
             ref={logoImgRef}
             src="/lazerclaw_logo.png"
@@ -1749,8 +1750,8 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
                 className="absolute pointer-events-none"
                 style={{
                   top: '-20%', left: '-120%', width: '60%', height: '140%',
-                  background: 'linear-gradient(105deg, transparent 0%, transparent 30%, rgba(255,255,255,0.15) 38%, rgba(255,255,255,0.35) 44%, rgba(255,255,255,0.8) 48%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.8) 52%, rgba(255,255,255,0.35) 56%, rgba(255,255,255,0.15) 62%, transparent 70%, transparent 100%)',
-                  transform: 'skewX(-15deg)', opacity: 0, filter: 'blur(1.5px)',
+                  background: 'linear-gradient(105deg, transparent 0%, transparent 25%, rgba(255,255,255,0.25) 35%, rgba(255,255,255,0.5) 42%, rgba(255,255,255,0.9) 48%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.9) 52%, rgba(255,255,255,0.5) 58%, rgba(255,255,255,0.25) 65%, transparent 75%, transparent 100%)',
+                  transform: 'skewX(-15deg)', opacity: 0, filter: 'blur(1px)',
                 }}
               />
               <div
@@ -1758,8 +1759,8 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
                 className="absolute pointer-events-none"
                 style={{
                   top: '-20%', left: '-120%', width: '35%', height: '140%',
-                  background: 'linear-gradient(105deg, transparent 0%, transparent 30%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0.28) 44%, rgba(255,255,255,0.65) 48%, rgba(255,255,255,0.85) 50%, rgba(255,255,255,0.65) 52%, rgba(255,255,255,0.28) 56%, rgba(255,255,255,0.12) 62%, transparent 70%, transparent 100%)',
-                  transform: 'skewX(-15deg)', opacity: 0, filter: 'blur(1.5px)',
+                  background: 'linear-gradient(105deg, transparent 0%, transparent 25%, rgba(255,255,255,0.2) 35%, rgba(255,255,255,0.4) 42%, rgba(255,255,255,0.8) 48%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.8) 52%, rgba(255,255,255,0.4) 58%, rgba(255,255,255,0.2) 65%, transparent 75%, transparent 100%)',
+                  transform: 'skewX(-15deg)', opacity: 0, filter: 'blur(1px)',
                 }}
               />
             </div>
@@ -1772,11 +1773,11 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
       {/* Undo/Redo — always visible */}
       <ToolBtn dm={dm} onClick={undo} disabled={undoStackRef.current.length === 0} title="Undo (Ctrl+Z)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 10h13a4 4 0 010 8H7"/><path d="M3 10l4-4M3 10l4 4"/></svg>
-        {collapse < 3 && <span>Undo</span>}
+        {collapse < 4 && <span>Undo</span>}
       </ToolBtn>
       <ToolBtn dm={dm} onClick={redo} disabled={redoStackRef.current.length === 0} title="Redo (Ctrl+Y)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10H8a4 4 0 000 8h9"/><path d="M21 10l-4-4M21 10l-4 4"/></svg>
-        {collapse < 3 && <span>Redo</span>}
+        {collapse < 4 && <span>Redo</span>}
       </ToolBtn>
 
       {/* ── Level 0: everything expanded ── */}
@@ -1812,8 +1813,41 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
         </>
       )}
 
-      {/* ── Level 1: grouped dropdowns, icon-only buttons ── */}
+      {/* ── Level 1: Copy/Paste/Dup → dropdown, Marks merged into Canvas area ── */}
       {collapse === 1 && (
+        <>
+          <Div />
+          <ToolDropdown label="Edit" icon={ic.edit} dm={dm}>
+            <DropItem icon={ic.copy} label="Copy" onClick={copySelected} disabled={!hasSelection} dm={dm} />
+            <DropItem icon={ic.paste} label="Paste" onClick={pasteFromClipboard} dm={dm} />
+            <DropItem icon={ic.dup} label="Duplicate" onClick={duplicateSelected} disabled={!hasSelection} dm={dm} />
+          </ToolDropdown>
+          <ToolDropdown label="Arrange" icon={ic.arrange} dm={dm}>
+            <DropItem icon={ic.fwd} label="Bring Forward" onClick={bringForward} disabled={!hasSelection} dm={dm} />
+            <DropItem icon={ic.bwd} label="Send Backward" onClick={sendBackward} disabled={!hasSelection} dm={dm} />
+            <DropSep dm={dm} />
+            <DropItem icon={ic.grp} label="Group" onClick={groupSelected} disabled={!isMultiSelection} dm={dm} />
+            <DropItem icon={ic.ungrp} label="Ungroup" onClick={ungroupSelected} disabled={!isGroup} dm={dm} />
+            <DropItem icon={ic.mask} label="Mask" onClick={canvasState.createMask} disabled={!canMask} dm={dm} />
+          </ToolDropdown>
+          <AlignPanel canvasState={canvasState} />
+          <TilePanel canvasState={canvasState} />
+          <Div />
+          <ToolBtn dm={dm} onClick={() => setActiveTool('select')} active={activeTool === 'select'} title="Select Tool (V)">{ic.select}<span>Select</span></ToolBtn>
+          <BlobBrushSettings canvasState={canvasState} />
+          <PenToolSettings canvasState={canvasState} />
+          <Div />
+          <ToolBtn dm={dm} onClick={handleAddText} title="Add Text Box">{ic.text}<span>Text</span></ToolBtn>
+          <ToolBtn dm={dm} onClick={deleteSelected} disabled={!hasSelection} title="Delete (Del)">{ic.del}<span>Delete</span></ToolBtn>
+          <Div />
+          <CanvasSizePicker canvasState={canvasState} />
+          <Div />
+          {playBtn}
+        </>
+      )}
+
+      {/* ── Level 2: grouped dropdowns, icon-only buttons ── */}
+      {collapse === 2 && (
         <>
           <Div />
           <ToolDropdown label="Edit" icon={ic.edit} dm={dm}>
@@ -1847,12 +1881,11 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
             {playDrop}
           </ToolDropdown>
           <CanvasSizePicker canvasState={canvasState} />
-          <PrinterMarksPanel canvasState={canvasState} />
         </>
       )}
 
-      {/* ── Level 2: single "More" dropdown ── */}
-      {collapse === 2 && (
+      {/* ── Level 3: single "More" dropdown ── */}
+      {collapse === 3 && (
         <>
           <Div />
           <ToolBtn dm={dm} onClick={() => setActiveTool('select')} active={activeTool === 'select'} title="Select Tool (V)">{ic.select}<span>Select</span></ToolBtn>
@@ -1882,8 +1915,8 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
         </>
       )}
 
-      {/* ── Level 3: ultra-compact — everything in one "Tools" dropdown ── */}
-      {collapse >= 3 && (
+      {/* ── Level 4: ultra-compact — everything in one "Tools" dropdown ── */}
+      {collapse >= 4 && (
         <>
           <Div />
           <ToolDropdown label="Tools" icon={ic.more} dm={dm} iconOnly>
@@ -1911,10 +1944,10 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
       )}
 
       {/* Music / Theme Song button - mysterious and enticing */}
-      {collapse < 3 && <Div />}
+      {collapse < 4 && <Div />}
       <button
         onClick={toggleMusic}
-        className={`${collapse >= 3 ? 'w-8 h-8' : 'w-10 h-10'} flex items-center justify-center rounded-xl transition-all shrink-0 relative ${musicPlaying ? 'music-mystery' : 'hover:music-mystery'}`}
+        className={`${collapse >= 4 ? 'w-8 h-8' : 'w-10 h-10'} flex items-center justify-center rounded-xl transition-all shrink-0 relative ${musicPlaying ? 'music-mystery' : 'hover:music-mystery'}`}
         title={musicPlaying ? 'Pause Theme Song' : '✨ Play Theme Song ✨'}
         style={{
           background: musicPlaying
@@ -1931,28 +1964,9 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
           color: musicPlaying ? '#e9d5ff' : dm ? '#c4b5fd' : '#7c3aed',
         }}
       >
-        {/* Mysterious swirl icon */}
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          {musicPlaying ? (
-            <>
-              {/* Animated sound waves when playing */}
-              <path d="M12 3v18" strokeWidth="2" />
-              <path d="M8 8v8" strokeWidth="2" />
-              <path d="M16 8v8" strokeWidth="2" />
-              <path d="M4 10v4" strokeWidth="2" />
-              <path d="M20 10v4" strokeWidth="2" />
-            </>
-          ) : (
-            <>
-              {/* Mysterious crystal/gem with sparkle */}
-              <path d="M12 2l3 7h-6l3-7z" fill="currentColor" fillOpacity="0.3" />
-              <path d="M9 9l3 13 3-13" />
-              <path d="M6 9h12" />
-              <circle cx="17" cy="5" r="1" fill="currentColor" />
-              <circle cx="7" cy="7" r="0.5" fill="currentColor" />
-              <path d="M19 8l1-1M20 11h1" strokeWidth="1" />
-            </>
-          )}
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+          <path d="M12 23c-3.866 0-7-2.686-7-6 0-2.91 2.184-5.399 4.5-7.463C11.266 7.906 12 6.2 12 4c0 .9.75 2.293 1.5 3.5.667 1.074 1.5 2.2 1.5 3.5 0 1.657-.716 2.886-1.5 3.5.607-.456 1.5-1.6 1.5-3 0 0 2 2.1 2 5 0 3.314-2.134 6.5-5 6.5z" fillOpacity={musicPlaying ? '0.9' : '0.7'} />
+          {musicPlaying && <path d="M12 23c-1.657 0-3-1.343-3-3 0-1.8 1.5-3 3-5 1.5 2 3 3.2 3 5 0 1.657-1.343 3-3 3z" fillOpacity="0.5" />}
         </svg>
         {/* Glowing indicator */}
         <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center" style={{
@@ -2013,7 +2027,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
       {/* Logout button - outlined secondary CTA with chrome effect */}
       <button
         onClick={() => setShowLogoutConfirm(true)}
-        className={`${collapse >= 3 ? 'px-2 w-9' : collapse >= 1 ? 'px-2.5' : 'px-5'} py-2 rounded text-sm font-bold transition-all shrink-0 flex items-center justify-center gap-2 ${collapse >= 1 ? 'ml-1' : 'ml-3'} relative overflow-hidden hover:scale-105`}
+        className={`${collapse >= 4 ? 'px-2 w-9' : collapse >= 1 ? 'px-2.5' : 'px-5'} py-2 rounded text-sm font-bold transition-all shrink-0 flex items-center justify-center gap-2 ${collapse >= 1 ? 'ml-1' : 'ml-3'} relative overflow-hidden hover:scale-105`}
         style={{
           background: dm
             ? 'linear-gradient(180deg, rgba(60,65,80,0.95) 0%, rgba(40,45,60,0.98) 100%)'
@@ -2033,7 +2047,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
           <polyline points="16 17 21 12 16 7" />
           <line x1="21" y1="12" x2="9" y2="12" />
         </svg>
-        {collapse < 3 && <span className="logout-label" style={{ position: 'relative', zIndex: 1 }}>Logout</span>}
+        {collapse < 4 && <span className="logout-label" style={{ position: 'relative', zIndex: 1 }}>Logout</span>}
       </button>
 
       </div>{/* end right group */}
