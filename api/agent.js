@@ -101,6 +101,7 @@ export default async function handler(req, res) {
     const data = await response.json()
     return res.status(200).json(data)
   } catch (err) {
-    return res.status(500).json({ error: err.message })
+    console.error('Agent handler error:', err)
+    return res.status(500).json({ error: 'An unexpected error occurred. Please try again.' })
   }
 }

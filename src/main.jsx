@@ -1268,7 +1268,7 @@ function EntryStormOverlay({ onMidpoint, onComplete }) {
         life: 1.0,
         phase: 'flash',
         flashTimer: 0.03 + Math.random() * 0.04,
-        fadeRate: 0.06 + Math.random() * 0.04,
+        fadeRate: 4.0 + Math.random() * 3.0,
       })
     }
 
@@ -1319,6 +1319,8 @@ function EntryStormOverlay({ onMidpoint, onComplete }) {
         nextSpawn = elapsed + 30 + Math.random() * 50
       }
 
+      if (bolts.length > 8) bolts.splice(0, bolts.length - 8)
+
       if (bolts.length > 0) {
         ctx.save()
         ctx.globalCompositeOperation = 'lighter'
@@ -1330,7 +1332,7 @@ function EntryStormOverlay({ onMidpoint, onComplete }) {
             if (b.flashTimer <= 0) b.phase = 'fade'
             alpha = 0.6 + Math.random() * 0.4
           } else {
-            b.life -= b.fadeRate
+            b.life -= b.fadeRate * dt
             if (b.life <= 0) { bolts.splice(i, 1); continue }
             alpha = b.life * 0.6
           }
