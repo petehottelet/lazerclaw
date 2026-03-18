@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220">
+  <path d="M50 210 L20 170 L15 120 L35 70 L60 30 L90 5 L110 15 L130 50 L155 25 L175 60 L185 100 L180 150 L170 190 L140 215 L100 210 Z" fill="none" stroke="black" stroke-width="3" stroke-linejoin="miter"/>
+  <line x1="90" y1="5" x2="95" y2="100" stroke="black" stroke-width="1.5" opacity="0.3"/>
+  <line x1="155" y1="25" x2="140" y2="120" stroke="black" stroke-width="1.5" opacity="0.3"/>
+  <line x1="35" y1="70" x2="100" y2="130" stroke="black" stroke-width="1.5" opacity="0.2"/>
+</svg>

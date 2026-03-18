@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Curled lobster mandala glyph -->
+  <path d="M100 20 C120 20 140 30 150 50 C160 70 155 95 145 110 C158 115 168 125 172 140 C176 158 168 175 152 182 C140 188 125 185 115 175 L100 185 L85 175 C75 185 60 188 48 182 C32 175 24 158 28 140 C32 125 42 115 55 110 C45 95 40 70 50 50 C60 30 80 20 100 20 Z" fill="none" stroke="black" stroke-width="3"/>
+  <circle cx="85" cy="60" r="6" fill="none" stroke="black" stroke-width="2"/>
+  <circle cx="115" cy="60" r="6" fill="none" stroke="black" stroke-width="2"/>
+  <circle cx="85" cy="60" r="2.5" fill="black"/>
+  <circle cx="115" cy="60" r="2.5" fill="black"/>
+  <path d="M88 80 Q100 92 112 80" fill="none" stroke="black" stroke-width="2"/>
+  <path d="M60 140 Q75 155 85 145" fill="none" stroke="black" stroke-width="2" opacity="0.5"/>
+  <path d="M140 140 Q125 155 115 145" fill="none" stroke="black" stroke-width="2" opacity="0.5"/>
+  <line x1="100" y1="95" x2="100" y2="170" stroke="black" stroke-width="1.5" opacity="0.3"/>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 200">
+  <!-- Swimming lobster silhouette glyph -->
+  <path d="M30 100 C30 85 40 72 55 68 L50 52 L42 38 L52 30 L60 42 L62 58 L70 55 L68 38 L65 22 L78 18 L78 38 L80 55 C90 52 100 50 110 52 C125 55 140 62 150 72 L162 65 L175 58 L180 70 L168 78 L155 82 C162 92 165 105 162 118 L175 122 L188 128 L185 142 L172 135 L158 128 C150 138 138 145 125 148 L128 162 L130 178 L118 182 L115 165 L112 148 C105 150 95 150 88 148 L82 165 L78 182 L65 178 L70 162 L75 148 C62 142 52 132 45 120 C38 110 32 105 30 100 Z" fill="none" stroke="black" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="140" cy="78" r="4" fill="black"/>
+  <path d="M110 85 C120 82 132 85 138 92" fill="none" stroke="black" stroke-width="1.5" opacity="0.4"/>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220">
+  <!-- Side-facing lobster glyph with tail curl -->
+  <path d="M25 100 C30 85 45 75 60 70 L55 55 L45 45 L50 35 L65 45 L70 60 L80 58 L85 40 L80 25 L90 20 L95 40 L92 60 C105 58 115 62 125 70 C135 75 145 85 150 95 L160 90 L170 95 L165 105 L150 105 C148 115 142 125 135 132 L140 145 L145 160 L150 175 L140 180 L130 165 L125 145 L120 135 C110 140 95 142 80 138 C65 134 50 125 40 115 C35 110 28 105 25 100 Z" fill="none" stroke="black" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="130" cy="82" r="4" fill="black"/>
+  <path d="M85 90 C95 85 110 88 115 95" fill="none" stroke="black" stroke-width="1.5" opacity="0.4"/>
+  <path d="M80 105 C90 100 108 102 115 108" fill="none" stroke="black" stroke-width="1.5" opacity="0.3"/>
+</svg>

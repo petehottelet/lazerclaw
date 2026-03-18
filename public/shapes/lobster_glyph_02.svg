@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Lobster from above, symmetrical glyph -->
+  <path d="M100 15 L90 30 L75 25 L70 40 L80 50 L75 70 L60 80 L45 75 L30 85 L40 95 L55 90 L70 95 L75 115 L65 130 L60 155 L70 170 L85 160 L90 140 L100 135 L110 140 L115 160 L130 170 L140 155 L135 130 L125 115 L130 95 L145 90 L160 95 L170 85 L155 75 L140 80 L125 70 L120 50 L130 40 L125 25 L110 30 Z" fill="none" stroke="black" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="90" cy="55" r="3.5" fill="black"/>
+  <circle cx="110" cy="55" r="3.5" fill="black"/>
+  <line x1="100" y1="70" x2="100" y2="130" stroke="black" stroke-width="1.5" opacity="0.4"/>
+</svg>

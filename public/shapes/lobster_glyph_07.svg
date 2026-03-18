@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240">
+  <!-- Lobster tail fan glyph -->
+  <path d="M100 10 C90 10 80 15 75 25 L65 20 L58 30 L70 38 C68 50 70 62 75 72 L60 80 L55 95 L48 110 L55 120 L68 112 L78 95 L82 80 C88 78 95 77 100 77 C105 77 112 78 118 80 L122 95 L132 112 L145 120 L152 110 L145 95 L140 80 L125 72 C130 62 132 50 130 38 L142 30 L135 20 L125 25 C120 15 110 10 100 10 Z" fill="none" stroke="black" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M82 130 L75 155 L68 175 L72 190 L82 185 L88 165 L92 145 Z" fill="none" stroke="black" stroke-width="2.5"/>
+  <path d="M100 128 L100 160 L100 185 L100 200 Z" fill="none" stroke="black" stroke-width="2.5"/>
+  <path d="M118 130 L125 155 L132 175 L128 190 L118 185 L112 165 L108 145 Z" fill="none" stroke="black" stroke-width="2.5"/>
+  <circle cx="90" cy="40" r="4" fill="black"/>
+  <circle cx="110" cy="40" r="4" fill="black"/>
+</svg>

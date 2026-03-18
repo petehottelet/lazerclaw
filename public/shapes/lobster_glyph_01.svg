@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Stylized lobster body glyph -->
+  <path d="M100 180 C85 175 75 160 70 140 L60 130 L45 140 L35 130 L50 115 L65 120 C65 100 68 80 75 65 C70 55 60 45 50 40 L55 30 L70 40 C78 30 88 20 100 15 C112 20 122 30 130 40 L145 30 L150 40 C140 45 130 55 125 65 C132 80 135 100 135 120 L150 115 L165 130 L155 140 L140 130 L130 140 C125 160 115 175 100 180 Z" fill="none" stroke="black" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="88" cy="45" r="4" fill="black"/>
+  <circle cx="112" cy="45" r="4" fill="black"/>
+  <path d="M90 60 Q100 70 110 60" fill="none" stroke="black" stroke-width="2"/>
+</svg>

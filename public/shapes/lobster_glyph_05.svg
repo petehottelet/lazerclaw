@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 200">
+  <!-- Lobster pincer/claw pair glyph -->
+  <path d="M110 190 L95 170 L80 175 L65 160 L55 140 L50 115 L40 100 L25 95 L15 80 L25 65 L40 70 L50 85 L55 100 L65 95 L75 80 L85 70 L95 65 L110 60 L125 65 L135 70 L145 80 L155 95 L165 100 L170 85 L180 70 L195 65 L205 80 L195 95 L180 100 L170 115 L165 140 L155 160 L140 175 L125 170 Z" fill="none" stroke="black" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="95" cy="100" r="4" fill="black"/>
+  <circle cx="125" cy="100" r="4" fill="black"/>
+  <path d="M95 115 Q110 125 125 115" fill="none" stroke="black" stroke-width="2"/>
+  <line x1="110" y1="130" x2="110" y2="165" stroke="black" stroke-width="1.5" opacity="0.4"/>
+</svg>

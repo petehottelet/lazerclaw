@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Lobster rune / petroglyph style -->
+  <path d="M100 15 L100 65" stroke="black" stroke-width="4" stroke-linecap="round"/>
+  <path d="M100 65 L100 140" stroke="black" stroke-width="4" stroke-linecap="round"/>
+  <path d="M100 140 L80 170 L70 190" stroke="black" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M100 140 L120 170 L130 190" stroke="black" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- Claws -->
+  <path d="M100 65 L65 45 L45 30 L30 40 L45 55 L60 52 L65 65" stroke="black" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M100 65 L135 45 L155 30 L170 40 L155 55 L140 52 L135 65" stroke="black" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- Legs -->
+  <path d="M100 85 L70 80 L55 75" stroke="black" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path d="M100 85 L130 80 L145 75" stroke="black" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path d="M100 105 L68 102 L52 98" stroke="black" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path d="M100 105 L132 102 L148 98" stroke="black" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path d="M100 125 L72 125 L58 122" stroke="black" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path d="M100 125 L128 125 L142 122" stroke="black" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <!-- Eyes -->
+  <circle cx="78" cy="35" r="3" fill="black"/>
+  <circle cx="122" cy="35" r="3" fill="black"/>
+  <!-- Antennae -->
+  <path d="M90 20 L75 5" stroke="black" stroke-width="2" stroke-linecap="round"/>
+  <path d="M110 20 L125 5" stroke="black" stroke-width="2" stroke-linecap="round"/>
+</svg>

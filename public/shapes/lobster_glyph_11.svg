@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Abstract lobster eye glyph with bubbles -->
+  <path d="M100 30 C130 30 155 50 165 75 C175 100 168 130 150 150 C132 168 108 175 85 170 C62 165 42 148 32 125 C22 102 28 72 48 52 C65 35 82 30 100 30 Z" fill="none" stroke="black" stroke-width="3"/>
+  <path d="M75 85 C82 72 98 68 110 75 C118 80 122 92 118 102 C112 112 98 118 85 112 C75 106 70 95 75 85 Z" fill="none" stroke="black" stroke-width="2.5"/>
+  <circle cx="98" cy="92" r="8" fill="black"/>
+  <circle cx="95" cy="88" r="2.5" fill="white"/>
+  <!-- Antennae -->
+  <path d="M65 55 L50 30 L42 15" stroke="black" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M80 48 L75 22 L72 8" stroke="black" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <!-- Bubbles -->
+  <circle cx="155" cy="45" r="5" fill="none" stroke="black" stroke-width="1.5" opacity="0.4"/>
+  <circle cx="170" cy="30" r="3.5" fill="none" stroke="black" stroke-width="1.5" opacity="0.3"/>
+  <circle cx="160" cy="18" r="2.5" fill="none" stroke="black" stroke-width="1.5" opacity="0.25"/>
+  <circle cx="180" cy="48" r="2" fill="none" stroke="black" stroke-width="1.5" opacity="0.2"/>
+</svg>

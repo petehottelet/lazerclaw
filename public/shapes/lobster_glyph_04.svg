@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Abstract lobster claw glyph -->
+  <path d="M60 190 C40 180 25 160 20 135 C15 110 25 85 40 70 L35 50 L25 35 L40 25 L50 40 L55 60 C70 48 90 42 110 45 C130 48 148 58 158 75 C168 92 170 115 162 135 C155 155 140 172 120 182 C100 190 80 192 60 190 Z" fill="none" stroke="black" stroke-width="3"/>
+  <path d="M70 100 C80 88 100 85 115 92 C125 98 128 112 120 122 C112 130 95 132 82 125 C72 118 68 108 70 100 Z" fill="none" stroke="black" stroke-width="2" opacity="0.5"/>
+  <circle cx="95" cy="72" r="5" fill="black" opacity="0.7"/>
+  <path d="M40 70 L30 55 M55 60 L48 42" stroke="black" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+</svg>

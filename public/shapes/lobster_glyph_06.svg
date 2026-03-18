@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Underwater lobster totem glyph -->
+  <path d="M100 10 L85 25 L70 20 L65 35 L78 45 L72 65 L55 75 L40 70 L30 80 L42 92 L60 88 L75 95 L80 115 L72 130 L75 150 L85 160 L95 155 L100 170 L105 155 L115 160 L125 150 L128 130 L120 115 L125 95 L140 88 L158 92 L170 80 L160 70 L145 75 L128 65 L122 45 L135 35 L130 20 L115 25 Z" fill="none" stroke="black" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="88" cy="55" r="5" fill="none" stroke="black" stroke-width="2"/>
+  <circle cx="112" cy="55" r="5" fill="none" stroke="black" stroke-width="2"/>
+  <circle cx="88" cy="55" r="2" fill="black"/>
+  <circle cx="112" cy="55" r="2" fill="black"/>
+  <path d="M92 72 Q100 80 108 72" fill="none" stroke="black" stroke-width="2"/>
+  <path d="M85 95 L100 100 L115 95" fill="none" stroke="black" stroke-width="1.5" opacity="0.5"/>
+</svg>

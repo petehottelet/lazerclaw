@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Tribal lobster crest glyph -->
+  <path d="M100 8 L88 22 L72 15 L68 32 L82 40 L75 58 L58 52 L42 58 L48 72 L65 68 L78 78 L75 98 L58 105 L52 120 L60 132 L78 125 L85 108 L100 102 L115 108 L122 125 L140 132 L148 120 L142 105 L125 98 L122 78 L135 68 L152 72 L158 58 L142 52 L125 58 L118 40 L132 32 L128 15 L112 22 Z" fill="none" stroke="black" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="90" cy="48" r="4" fill="black"/>
+  <circle cx="110" cy="48" r="4" fill="black"/>
+  <path d="M100 140 L92 160 L88 180 L100 190 L112 180 L108 160 Z" fill="none" stroke="black" stroke-width="2.5"/>
+</svg>

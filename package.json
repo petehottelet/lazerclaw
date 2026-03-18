@@ -1,0 +1,36 @@
+{
+  "name": "lazerclaw",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1008.0",
+    "@google/generative-ai": "^0.24.1",
+    "bcryptjs": "^3.0.3",
+    "fabric": "^6.6.1",
+    "file-saver": "^2.0.5",
+    "gifuct-js": "^2.1.2",
+    "jose": "^6.2.1",
+    "jspdf": "^4.2.0",
+    "jszip": "^3.10.1",
+    "mp4-muxer": "^5.2.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^3.4.17",
+    "vite": "^6.3.2"
+  }
+}
