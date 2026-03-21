@@ -1,4 +1,8 @@
-import { put, list } from '@vercel/blob'
+let blobModule = null
+async function getBlob() {
+  if (!blobModule) blobModule = await import('@vercel/blob')
+  return blobModule
+}
 
 export const config = { maxDuration: 60 }
 
@@ -96,6 +100,7 @@ export default async function handler(req, res) {
       if (!process.env.BLOB_READ_WRITE_TOKEN) {
         return res.status(500).json({ error: 'BLOB_READ_WRITE_TOKEN not configured', lobsters: [] })
       }
+      const { list } = await getBlob()
       const result = await list({ prefix: BLOB_PREFIX })
       const lobsters = result.blobs
         .filter(b => b.size > 0)
@@ -124,6 +129,7 @@ export default async function handler(req, res) {
       const filename = `${BLOB_PREFIX}${Date.now()}_${safeName}.${ext}`
 
       const buffer = Buffer.from(imageData, 'base64')
+      const { put } = await getBlob()
       const blob = await put(filename, buffer, {
         access: 'public',
         contentType: mimeType,
