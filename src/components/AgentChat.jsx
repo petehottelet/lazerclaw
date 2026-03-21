@@ -1827,6 +1827,21 @@ export default function AgentChat({ canvasState }) {
         .agent-orb-container {
           animation: agentOrbFloat 6s ease-in-out infinite, magicalGlow 4s ease-in-out infinite;
         }
+        .agent-orb-container.agent-orb-active {
+          animation: agentOrbFloat 6s ease-in-out infinite, magicalGlowRed 4s ease-in-out infinite;
+        }
+        @keyframes magicalGlowRed {
+          0%, 100% {
+            filter: drop-shadow(0 0 15px rgba(220,40,40,0.6))
+                    drop-shadow(0 0 30px rgba(200,20,20,0.4))
+                    drop-shadow(0 0 45px rgba(180,10,10,0.2));
+          }
+          50% {
+            filter: drop-shadow(0 0 25px rgba(240,50,50,0.9))
+                    drop-shadow(0 0 50px rgba(220,30,30,0.6))
+                    drop-shadow(0 0 75px rgba(200,20,20,0.3));
+          }
+        }
         .gem-shimmer-container {
           position: relative;
           width: 100%;
@@ -2133,7 +2148,7 @@ export default function AgentChat({ canvasState }) {
       })()}
 
       <div
-        className={`agent-orb-container ${orbDragRef.current?.moved ? '' : ''}`}
+        className={`agent-orb-container${isOpen ? ' agent-orb-active' : ''}`}
         onMouseDown={handleOrbMouseDown}
         style={{
           position: 'fixed',
