@@ -63,7 +63,7 @@ export function useCanvasState() {
   const [bgColor, setBgColorState] = useState('#ffffff')
   const [activeTool, setActiveTool] = useState('select')
   const [blobBrushSize, setBlobBrushSize] = useState(20)
-  const [blobBrushColor, setBlobBrushColor] = useState('#000000')
+  const [blobBrushColor, setBlobBrushColor] = useState('#8B0000')
   const [blobBrushShape, setBlobBrushShape] = useState('circle')
   const [blobBrushAngle, setBlobBrushAngle] = useState(45)
   const [autoplay, setAutoplay] = useState(true)
@@ -84,6 +84,8 @@ export function useCanvasState() {
   const [canvasUnit, setCanvasUnit] = useState('in')
   const [canvasDpi, setCanvasDpi] = useState(100)
   const [showCheckerboard, setShowCheckerboard] = useState(false)
+  const [bloodRain, setBloodRain] = useState(false)
+  const [laserSmoke, setLaserSmoke] = useState(false)
 
   const [printerMarks, setPrinterMarks] = useState({
     bleedLine: false,
@@ -713,5 +715,9 @@ export function useCanvasState() {
     removeMaskFromGroup: (group) => { if (removeMaskRef.current) removeMaskRef.current(group) },
     syncMaskClipPathRef,
     syncMaskClipPath: (group, child) => { if (syncMaskClipPathRef.current) syncMaskClipPathRef.current(group, child) },
+    bloodRain,
+    setBloodRain,
+    laserSmoke,
+    setLaserSmoke,
   }
 }

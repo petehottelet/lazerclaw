@@ -1,11 +1,13 @@
 import React, { useState, useRef, useCallback } from 'react'
 import { PEN_SUB_TOOL_LIST } from './penSubToolList'
+import BloodFill from './BloodFill'
 
 export default function FloatingPenToolbar({ canvasState }) {
   const {
     activeTool, setActiveTool,
     penSubTool, setPenSubTool,
     darkMode,
+    bloodRain,
   } = canvasState
   const dm = !!darkMode
 
@@ -48,7 +50,7 @@ export default function FloatingPenToolbar({ canvasState }) {
       className="fixed z-[200] select-none"
       style={{ left: pos.x, top: pos.y }}
     >
-      <div className={`rounded-xl shadow-2xl w-48 overflow-hidden border ${
+      <div className={`rounded-xl shadow-2xl w-48 overflow-hidden border relative ${
         dm ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'
       }`}
         style={{ boxShadow: dm ? '0 8px 32px rgba(0,0,0,0.5)' : '0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)' }}
@@ -103,6 +105,7 @@ export default function FloatingPenToolbar({ canvasState }) {
             <div><strong>Anchor Pt: Click handle</strong> break link</div>
           </div>
         </div>
+        {bloodRain && <BloodFill />}
       </div>
     </div>
   )

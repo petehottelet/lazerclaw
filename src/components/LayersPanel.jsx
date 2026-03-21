@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { ActiveSelection, FabricImage } from 'fabric'
 import { v4 as uuidv4 } from 'uuid'
 import ColorPicker, { buildPatternFromImage, addRecentImageFill } from './ColorPicker'
+import BloodFill from './BloodFill'
 import { reconcileTokens } from '../utils/tokenizer'
 
 const SHAPE_LABELS = {
@@ -292,7 +293,7 @@ function DropIndicatorLine({ dm }) {
 export default function LayersPanel({ canvasState }) {
   const dm = !!canvasState.darkMode
   const { canvasRef, canvasObjects, selectedObject, setSelectedObject, saveUndoState, refreshObjects, bgColor, setBgColor, applyBgFill, setTokensForObject,
-    audioTracks, playAudioTrack, pauseAudioTrack, stopAudioTrack, setAudioVolume, canvasW, canvasH, addAsset } = canvasState
+    audioTracks, playAudioTrack, pauseAudioTrack, stopAudioTrack, setAudioVolume, canvasW, canvasH, addAsset, bloodRain } = canvasState
   const [dragIdx, setDragIdx] = useState(null)
   const [dropSlot, setDropSlot] = useState(null) // { slot: number } — insertion point between/around items
   const [, forceUpdate] = useState(0)
@@ -992,6 +993,7 @@ export default function LayersPanel({ canvasState }) {
           </div>
         )}
       </div>
+      {bloodRain && <BloodFill />}
     </div>
   )
 }

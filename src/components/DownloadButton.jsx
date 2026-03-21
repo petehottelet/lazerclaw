@@ -557,7 +557,7 @@ export default function DownloadButton({ canvasState, collapse = 0 }) {
         onClick={() => setOpen(!open)}
         disabled={busy}
         className={`
-          relative flex items-center justify-center gap-2 ${collapse >= 3 ? 'px-2 w-9' : collapse >= 1 ? 'px-2.5' : 'px-5'} py-2 rounded text-sm font-black uppercase transition-all duration-200 overflow-visible shrink-0
+          relative flex items-center justify-center gap-2 ${collapse >= 3 ? 'px-2 w-9' : collapse >= 1 ? 'px-2.5' : 'px-5'} py-2 rounded-lg text-sm font-black uppercase transition-all duration-200 overflow-visible shrink-0
           ${busy ? 'cursor-wait' : 'hover:scale-105 active:scale-[0.98]'}
         `}
         style={busy ? {

@@ -46,6 +46,17 @@ const items = [
     ),
   },
   {
+    id: 'gallery',
+    label: 'Gallery',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+        <path d="M21 15l-5-5L5 21" />
+      </svg>
+    ),
+  },
+  {
     id: 'lobsters',
     label: 'Lobsters',
     icon: (
@@ -63,7 +74,7 @@ const items = [
 ]
 
 // AI Tools panel hidden from nav per product request
-const SIDEBAR_ITEMS = items.filter((i) => i.id !== 'ai-tools')
+const SIDEBAR_ITEMS = items.filter((i) => i.id !== 'ai-tools' && i.id !== 'gallery')
 
 export default function IconSidebar({ activePanel, onSelectPanel, darkMode }) {
   return (

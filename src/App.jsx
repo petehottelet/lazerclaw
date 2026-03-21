@@ -7,10 +7,12 @@ import ShapesPanel from './components/ShapesPanel'
 import IconsPanel from './components/IconsPanel'
 import LobstersPanel from './components/LobstersPanel'
 import AiToolsPanel from './components/AiToolsPanel'
+import GeneratedImagesPanel from './components/GeneratedImagesPanel'
 import CanvasArea from './components/CanvasArea'
 import RightSidebar from './components/RightSidebar'
 import AgentChat from './components/AgentChat'
 import FloatingPenToolbar from './components/FloatingPenToolbar'
+import FloatingBlobToolbar from './components/FloatingBlobToolbar'
 import DownloadButton from './components/DownloadButton'
 import { MobileHeader, MobileBottomNav, MobileBottomSheet, MobilePropertiesBar, MorePanelContent } from './components/MobileUI'
 import { Textbox } from 'fabric'
@@ -530,8 +532,12 @@ export default function App() {
         {activePanel === 'ai-tools' && (
           <AiToolsPanel canvasState={canvasState} darkMode={darkMode} />
         )}
+        {activePanel === 'gallery' && (
+          <GeneratedImagesPanel canvasState={canvasState} />
+        )}
         <CanvasArea canvasState={canvasState} />
         <FloatingPenToolbar canvasState={canvasState} />
+        <FloatingBlobToolbar canvasState={canvasState} />
         {rightSidebarOpen && (
           <RightSidebar
             canvasState={canvasState}

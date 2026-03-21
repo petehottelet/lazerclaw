@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { FabricImage } from 'fabric'
 import { v4 as uuidv4 } from 'uuid'
+import BloodFill from './BloodFill'
 
 const LOBSTER_IMAGES = [
   { file: 'lobster_01.jpg', title: 'Board Meeting Lobster' },
@@ -34,7 +35,7 @@ const BASE_PATH = '/lobsters'
 
 export default function LobstersPanel({ canvasState }) {
   const dm = !!canvasState.darkMode
-  const { canvasRef, saveUndoState, refreshObjects } = canvasState
+  const { canvasRef, saveUndoState, refreshObjects, bloodRain } = canvasState
   const [loadingFile, setLoadingFile] = useState(null)
   const [generating, setGenerating] = useState(false)
   const [generatedLobsters, setGeneratedLobsters] = useState([])
@@ -206,6 +207,7 @@ export default function LobstersPanel({ canvasState }) {
           ))}
         </div>
       </div>
+      {bloodRain && <BloodFill />}
     </div>
   )
 }

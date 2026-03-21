@@ -1,4 +1,4 @@
-import { put, list } from '@vercel/blob'
+import { put, list, del } from '@vercel/blob'
 
 export const config = { maxDuration: 60 }
 
@@ -136,6 +136,18 @@ export default async function handler(req, res) {
       })
     } catch (err) {
       console.error('Generate lobster error:', err)
+      return res.status(500).json({ error: err.message })
+    }
+  }
+
+  if (req.method === 'DELETE') {
+    try {
+      const { url } = req.body || {}
+      if (!url) return res.status(400).json({ error: 'Missing url' })
+      await del(url)
+      return res.status(200).json({ success: true })
+    } catch (err) {
+      console.error('Delete lobster error:', err?.message)
       return res.status(500).json({ error: err.message })
     }
   }

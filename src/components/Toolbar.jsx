@@ -2,10 +2,27 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Textbox, Group, FabricImage } from 'fabric'
 import { v4 as uuidv4 } from 'uuid'
 import DownloadButton from './DownloadButton'
-import ColorPicker from './ColorPicker'
+
 import { ActiveSelection } from 'fabric'
 import { applyTiling, removeTiling, removeOrphanedTileClones } from '../utils/tiling'
 import { PEN_SUB_TOOLS } from '../utils/penTool'
+import BloodFill from './BloodFill'
+import LaserSmokeMachine from './LaserSmokeMachine'
+
+function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)] }
+
+const LOGOUT_TEXTS = [
+  { title: 'Heads up, shredder!', body: 'Your current session will be cleared and any unsaved designs will vanish into the void.', warning: 'Download anything you wanna keep before you bail.', cancel: 'Cancel', confirm: 'Peace Out' },
+  { title: 'Whoa there, roadie!', body: 'Leaving now means your entire masterpiece gets fed to the abyss. No encores.', warning: 'Save your work or lose it forever, dude.', cancel: 'Stay', confirm: 'Rage Quit' },
+  { title: 'Abandon ship, Captain?', body: "The Claw's gonna miss you. Everything on this canvas will be swallowed by the deep.", warning: "Seriously, download first unless you're cool with total destruction.", cancel: 'Nah', confirm: 'Later, Claw' },
+  { title: "You're really leaving?", body: "All your sick designs, gone like a guitar solo in the wind. The lobsters will weep.", warning: "Hit download if you don't want your art to become ocean floor debris.", cancel: 'Wait', confirm: 'Catch Ya' },
+  { title: 'End of the line, metalhead!', body: "This session's about to get nuked harder than a drum solo finale. Everything goes.", warning: 'Last chance to save your creations, bro.', cancel: 'Hold Up', confirm: 'Shred Out' },
+  { title: 'Dropping the mic?', body: "Once you leave, this canvas gets wiped cleaner than a freshly polished Gibson.", warning: "Don't forget to download your bangers first.", cancel: 'Not Yet', confirm: 'Drop It' },
+  { title: 'Fleeing the stage?', body: "Your unsaved designs will dissolve like smoke from a fog machine. Poof. Gone.", warning: 'Export your work before the curtain falls.', cancel: 'Encore', confirm: 'Exit Stage Left' },
+  { title: 'Logging out, legend?', body: "Everything you've built here lives only in this session. Walk away and it all fades to black.", warning: 'Download your designs before you vanish into the night.', cancel: 'Stay Metal', confirm: 'Peace Out' },
+  { title: 'Pulling the plug?', body: "Like unplugging the amp mid-solo — your session, your designs, all gone in a flash.", warning: "Save now or forever hold your peace, shredder.", cancel: 'Keep Rocking', confirm: 'Unplug' },
+  { title: "Surf's up... and out?", body: "The Claw respects your decision, but your canvas art is about to become fish food.", warning: "Download what you love before riding this wave outta here.", cancel: 'Paddle Back', confirm: 'Ride Out' },
+]
 
 // ─── LOGO LIGHTNING EFFECT ──────────────────────────────────────────────────
 function generateLogoBolt(x1, y1, x2, y2, detail = 4) {
@@ -518,7 +535,7 @@ function SizeMenuBlood() {
       const W = cvs.width, H = cvs.height
       ctx.clearRect(0, 0, W, H)
 
-      if (poolLevel < poolTarget) poolLevel = Math.min(poolTarget, poolLevel + dt * 0.05)
+      if (poolLevel < poolTarget) poolLevel = Math.min(poolTarget, poolLevel + dt * 0.02)
 
       spawnAcc += dt
       const rate = 120
@@ -697,259 +714,1064 @@ function SizeMenuBlood() {
   )
 }
 
-const NUKE_VERT = `
-attribute vec2 a_pos;
-void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
-`
-
-const NUKE_FRAG = `
-precision highp float;
-uniform float u_time;
-uniform vec2 u_res;
-
-float hash(float n) { return fract(sin(n) * 43758.5453123); }
-
-float noise3(vec3 x) {
-  vec3 p = floor(x);
-  vec3 f = fract(x);
-  f = f * f * (3.0 - 2.0 * f);
-  float n = p.x + p.y * 157.0 + p.z * 113.0;
-  return mix(
-    mix(mix(hash(n),         hash(n + 1.0),   f.x),
-        mix(hash(n + 157.0), hash(n + 158.0), f.x), f.y),
-    mix(mix(hash(n + 113.0), hash(n + 114.0), f.x),
-        mix(hash(n + 270.0), hash(n + 271.0), f.x), f.y),
-    f.z);
-}
-
-float fbm4(vec3 p) {
-  float f = 0.5 * noise3(p); p = p * 2.02 + vec3(1.7, 2.3, 0.9);
-  f += 0.25 * noise3(p);     p = p * 2.03 + vec3(0.5, 1.1, 2.4);
-  f += 0.125 * noise3(p);    p = p * 2.01 + vec3(2.1, 0.3, 1.6);
-  f += 0.0625 * noise3(p);
-  return f / 0.9375;
-}
-
-float fbm2(vec3 p) {
-  return 0.667 * noise3(p) + 0.333 * noise3(p * 2.02 + vec3(1.7, 2.3, 0.9));
-}
-
-float smin(float a, float b, float k) {
-  float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
-  return mix(b, a, h) - k * h * (1.0 - h);
-}
-
-float cloudShape(vec3 p, float t) {
-  float grow = smoothstep(0.3, 4.0, t);
-  if (grow < 0.01) return 0.0;
-  float rise = smoothstep(0.8, 5.0, t) * 2.5;
-  float d = 0.0;
-
-  float stemBot = -0.5;
-  float stemH = 3.5 * grow;
-  float stemTop = stemBot + stemH + rise * 0.3;
-
-  if (p.y > stemBot - 0.3 && p.y < stemTop + 0.2) {
-    float sy = clamp((p.y - stemBot) / max(stemTop - stemBot, 0.01), 0.0, 1.0);
-    float w = (0.55 - 0.25 * sy) * grow + 0.35 * grow * exp(-sy * 4.0);
-    w = max(w, 0.12 * grow);
-    float r = length(p.xz);
-    float s = smoothstep(w, w * 0.5, r);
-    s *= smoothstep(stemBot - 0.2, stemBot + 0.3, p.y);
-    s *= 1.0 - smoothstep(stemTop - 0.2, stemTop + 0.1, p.y);
-    d = s;
-  }
-
-  float capY = stemTop + 0.3;
-  vec3 cp = p - vec3(0.0, capY, 0.0);
-  float majR = 1.3 * grow;
-  float minR = 0.7 * grow;
-  float q = length(cp.xz) - majR;
-  float torus = length(vec2(q, cp.y * 1.3)) - minR;
-  vec3 domeP = cp - vec3(0.0, minR * 0.35, 0.0);
-  float dome = length(domeP) - majR * 0.78;
-  float capSDF = smin(torus, dome, 0.35 * grow);
-  float cap = smoothstep(0.12 * grow, -0.35 * grow, capSDF);
-  d = max(d, cap);
-
-  if (t > 0.3) {
-    float dt = clamp((t - 0.3) / 3.0, 0.0, 1.0);
-    float dr = dt * 2.5;
-    float r = length(p.xz);
-    float ring = exp(-pow((r - dr) * 2.5, 2.0)) * exp(-pow((p.y + 0.3) * 5.0, 2.0)) * dt * 0.4;
-    d = max(d, ring);
-  }
-
-  return clamp(d, 0.0, 1.0);
-}
-
-void main() {
-  vec2 uv = (gl_FragCoord.xy - 0.5 * u_res) / u_res.y;
-  float t = u_time;
-
-  float fadeAlpha = t > 5.5 ? 1.0 - (t - 5.5) / 2.0 : 1.0;
-  if (fadeAlpha <= 0.0) { gl_FragColor = vec4(0.0); return; }
-
-  vec3 ro = vec3(0.0, 1.5, 6.0);
-  vec3 rd = normalize(vec3(uv.x, uv.y, -1.5));
-  vec3 sun = normalize(vec3(0.4, 0.7, 0.3));
-
-  vec4 sum = vec4(0.0);
-
-  for (int i = 0; i < 80; i++) {
-    if (sum.a > 0.97) break;
-    float md = 2.0 + float(i) * 0.1;
-    vec3 pos = ro + rd * md;
-
-    if (pos.y > -2.0 && pos.y < 12.0 && length(pos.xz) < 5.0) {
-      float shape = cloudShape(pos, t);
-
-      if (shape > 0.01) {
-        vec3 np = pos * 1.3 + vec3(0.0, -t * 1.2, 0.0);
-        float turb = fbm4(np);
-        float d = shape * (turb * 0.6 + 0.4);
-        d *= smoothstep(0.04, 0.2, d);
-
-        if (d > 0.005) {
-          float cDist = length(pos.xz);
-          float temp = exp(-cDist * 0.4) * (0.4 + 0.6 * clamp(1.0 - pos.y / 8.0, 0.0, 1.0));
-          temp *= 1.0 - smoothstep(1.5, 5.0, t) * 0.4;
-          temp = clamp(temp, 0.0, 1.0);
-
-          vec3 col = mix(vec3(0.06, 0.04, 0.03), vec3(0.25, 0.12, 0.06), smoothstep(0.0, 0.2, temp));
-          col = mix(col, vec3(0.7, 0.25, 0.04),  smoothstep(0.2, 0.45, temp));
-          col = mix(col, vec3(1.0, 0.55, 0.1),   smoothstep(0.45, 0.65, temp));
-          col = mix(col, vec3(1.0, 0.9, 0.55),   smoothstep(0.65, 0.85, temp));
-          col = mix(col, vec3(1.0, 0.98, 0.9),   smoothstep(0.85, 1.0, temp));
-
-          float ls = cloudShape(pos + sun * 0.5, t);
-          float ln = fbm2(np + sun * 0.65);
-          float lit = exp(-ls * (ln * 0.5 + 0.5) * 5.0);
-          col *= 0.15 + 0.85 * lit;
-          col += vec3(0.02, 0.03, 0.05) * (1.0 - lit) * 0.3;
-
-          float a = d * 0.07;
-          sum += vec4(col * a, a) * (1.0 - sum.a);
-        }
-      }
-    }
-  }
-
-  if (t < 0.5) {
-    float fi = pow(1.0 - t / 0.5, 2.0);
-    float flash = exp(-length(uv) * 3.0) * fi;
-    sum.rgb += vec3(1.0, 0.98, 0.92) * flash;
-    sum.a = max(sum.a, flash);
-  }
-
-  if (t > 0.08 && t < 2.5) {
-    float st = (t - 0.08) / 2.42;
-    float ring = exp(-pow((length(uv) - st * 1.5) * 9.0, 2.0)) * (1.0 - st);
-    sum.rgb += vec3(1.0, 0.8, 0.45) * ring * 0.45;
-    sum.a = max(sum.a, ring * 0.35);
-  }
-
-  if (t > 0.2 && t < 5.5) {
-    float gy = uv.y + 0.38;
-    float glow = exp(-gy * gy * 40.0) * exp(-uv.x * uv.x * 3.0);
-    glow *= smoothstep(0.2, 0.8, t) * smoothstep(5.5, 3.5, t);
-    sum.rgb += vec3(1.0, 0.45, 0.05) * glow * 0.25;
-    sum.a = max(sum.a, glow * 0.2);
-  }
-
-  sum.a *= fadeAlpha;
-  gl_FragColor = vec4(sum.rgb, clamp(sum.a, 0.0, 1.0));
-}
-`
-
-function NukeExplosion({ onComplete }) {
-  const canvasRef = useRef(null)
+function NukeExplosion({ onComplete, onFlashPeak }) {
+  const containerRef = useRef(null)
+  const flashRef = useRef(null)
+  const meltRef = useRef(null)
+  const heatRef = useRef(null)
+  const sparkRef = useRef(null)
+  const peakFlashRef = useRef(null)
+  const onCompleteRef = useRef(onComplete)
+  const onFlashPeakRef = useRef(onFlashPeak)
+  onCompleteRef.current = onComplete
+  onFlashPeakRef.current = onFlashPeak
 
   useEffect(() => {
-    const cvs = canvasRef.current
-    if (!cvs) return
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5)
-    const scale = 0.7
-    cvs.width = Math.round(window.innerWidth * scale * dpr)
-    cvs.height = Math.round(window.innerHeight * scale * dpr)
+    const container = containerRef.current
+    if (!container) return
+    let cancelled = false
 
-    const gl = cvs.getContext('webgl', { alpha: true, premultipliedAlpha: false })
-    if (!gl) { onComplete(); return }
+    const run = async () => {
+      const THREE = await import('three')
+      const W = window.innerWidth, H = window.innerHeight
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
+      renderer.setSize(W, H)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      renderer.setClearColor(0x000000, 0)
+      renderer.toneMapping = THREE.ACESFilmicToneMapping
+      renderer.toneMappingExposure = 1.2
+      container.appendChild(renderer.domElement)
 
-    gl.enable(gl.BLEND)
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+      const scene = new THREE.Scene()
+      const camera = new THREE.PerspectiveCamera(65, W / H, 0.1, 1000)
+      camera.position.set(0, 5, 30)
+      camera.lookAt(0, 5, 0)
 
-    function compileShader(src, type) {
-      const s = gl.createShader(type)
-      gl.shaderSource(s, src)
-      gl.compileShader(s)
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-        console.error('Shader compile error:', gl.getShaderInfoLog(s))
+      const ambLight = new THREE.AmbientLight(0xff8844, 4)
+      scene.add(ambLight)
+      const ptLight = new THREE.PointLight(0xffaa44, 0, 120)
+      scene.add(ptLight)
+      const capLight = new THREE.PointLight(0xff6600, 0, 100)
+      scene.add(capLight)
+      const groundLight = new THREE.PointLight(0xff4400, 0, 60)
+      groundLight.position.set(0, 0.5, 0)
+      scene.add(groundLight)
+      const fillLight = new THREE.DirectionalLight(0xff8844, 2)
+      fillLight.position.set(5, 10, 8)
+      scene.add(fillLight)
+      const rimLight = new THREE.DirectionalLight(0xff6622, 1.5)
+      rimLight.position.set(-8, 12, -5)
+      scene.add(rimLight)
+
+      const RAMP = [
+        { t: 0.00, c: new THREE.Color(0xffffff) },
+        { t: 0.05, c: new THREE.Color(0xfffff0) },
+        { t: 0.12, c: new THREE.Color(0xffffaa) },
+        { t: 0.22, c: new THREE.Color(0xffee44) },
+        { t: 0.35, c: new THREE.Color(0xffaa00) },
+        { t: 0.45, c: new THREE.Color(0xff6600) },
+        { t: 0.55, c: new THREE.Color(0xee3300) },
+        { t: 0.65, c: new THREE.Color(0xcc2200) },
+        { t: 0.75, c: new THREE.Color(0xaa1100) },
+        { t: 0.85, c: new THREE.Color(0x882200) },
+        { t: 0.93, c: new THREE.Color(0x553311) },
+        { t: 1.00, c: new THREE.Color(0x331111) },
+      ]
+      function sampleRamp(t) {
+        t = Math.max(0, Math.min(1, t))
+        for (let i = 0; i < RAMP.length - 1; i++) {
+          if (t <= RAMP[i+1].t) {
+            const f = (t - RAMP[i].t) / (RAMP[i+1].t - RAMP[i].t)
+            return new THREE.Color().lerpColors(RAMP[i].c, RAMP[i+1].c, f)
+          }
+        }
+        return RAMP[RAMP.length-1].c.clone()
       }
-      return s
-    }
 
-    const prog = gl.createProgram()
-    gl.attachShader(prog, compileShader(NUKE_VERT, gl.VERTEX_SHADER))
-    gl.attachShader(prog, compileShader(NUKE_FRAG, gl.FRAGMENT_SHADER))
-    gl.linkProgram(prog)
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-      console.error('Program link error:', gl.getProgramInfoLog(prog))
-      onComplete()
-      return
-    }
-    gl.useProgram(prog)
-
-    const buf = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf)
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW)
-    const aPos = gl.getAttribLocation(prog, 'a_pos')
-    gl.enableVertexAttribArray(aPos)
-    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0)
-
-    const uTime = gl.getUniformLocation(prog, 'u_time')
-    const uRes = gl.getUniformLocation(prog, 'u_res')
-    gl.uniform2f(uRes, cvs.width, cvs.height)
-
-    const start = performance.now()
-    let rafId
-
-    function render() {
-      const elapsed = (performance.now() - start) / 1000
-      if (elapsed > 7.5) {
-        cvs.style.transform = ''
-        cancelAnimationFrame(rafId)
-        onComplete()
-        return
+      function noise3(x, y, z) {
+        return Math.sin(x * 1.7 + y * 2.3) * Math.cos(y * 1.1 + z * 3.1) * Math.sin(z * 2.7 + x * 1.3)
       }
-      const shake = Math.max(0, 1.0 - elapsed / 3.0) * 6
-      const sx = (Math.random() - 0.5) * shake
-      const sy = (Math.random() - 0.5) * shake
-      cvs.style.transform = `translate(${sx}px, ${sy}px)`
+      function fbm(x, y, z) {
+        return noise3(x, y, z) * 0.5 + noise3(x*2.1, y*2.1, z*2.1) * 0.3 + noise3(x*4.3, y*4.3, z*4.3) * 0.2
+      }
 
-      gl.viewport(0, 0, cvs.width, cvs.height)
-      gl.clearColor(0, 0, 0, 0)
-      gl.clear(gl.COLOR_BUFFER_BIT)
-      gl.uniform1f(uTime, elapsed)
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
-      rafId = requestAnimationFrame(render)
+      const objs = []
+      function add(o) { scene.add(o); objs.push(o) }
+
+      // ─── Phase 1: Flash sphere + shrapnel ───
+      const flashGeo = new THREE.IcosahedronGeometry(1, 5)
+      const flashMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true })
+      const flashMesh = new THREE.Mesh(flashGeo, flashMat)
+      flashMesh.scale.setScalar(0.01)
+      add(flashMesh)
+
+      const blastDiscGeo = new THREE.RingGeometry(0.5, 1.5, 72)
+      const blastDiscMat = new THREE.MeshBasicMaterial({ color: 0xffffcc, transparent: true, opacity: 0, side: THREE.DoubleSide })
+      const blastDisc = new THREE.Mesh(blastDiscGeo, blastDiscMat)
+      blastDisc.rotation.x = -Math.PI / 2
+      add(blastDisc)
+
+      const SHRAPNEL_N = 3000
+      const shrapnel = []
+      const shrapGeo = new THREE.TetrahedronGeometry(1, 2)
+      for (let i = 0; i < SHRAPNEL_N; i++) {
+        const s = 0.04 + Math.random() * 0.22
+        const mat = new THREE.MeshBasicMaterial({ color: 0xffcc44, transparent: true })
+        const m = new THREE.Mesh(shrapGeo, mat)
+        m.scale.setScalar(s)
+        const theta = Math.random() * Math.PI * 2
+        const phi = Math.acos(2 * Math.random() - 1)
+        const speed = 20 + Math.random() * 55
+        m.userData.vel = new THREE.Vector3(
+          Math.sin(phi) * Math.cos(theta) * speed,
+          Math.sin(phi) * Math.sin(theta) * speed * 0.7 + 8,
+          Math.cos(phi) * speed
+        )
+        m.userData.lifetime = 0.5 + Math.random() * 1.8
+        m.userData.age = 0
+        m.userData.trail = []
+        m.visible = false
+        add(m)
+        shrapnel.push(m)
+      }
+
+      const trailGeo = new THREE.BufferGeometry()
+      trailGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0,0.06,0, -0.03,0,0, 0.03,0,0]), 3))
+      const fireTrails = []
+      for (let i = 0; i < 800; i++) {
+        const mat = new THREE.MeshBasicMaterial({ color: 0xffaa22, transparent: true, opacity: 0, side: THREE.DoubleSide })
+        const m = new THREE.Mesh(trailGeo, mat)
+        m.visible = false
+        m.userData.age = 0
+        m.userData.lifetime = 0.3 + Math.random() * 0.5
+        const s = 0.15 + Math.random() * 0.3
+        m.scale.setScalar(s)
+        add(m)
+        fireTrails.push(m)
+      }
+      let trailIdx = 0
+
+      // ─── Phase 2: Fireball + bubbles ───
+      const fbGeo = new THREE.SphereGeometry(1, 38, 28)
+      const fbBase = fbGeo.attributes.position.array.slice()
+      for (let i = 0; i < fbBase.length; i++) fbBase[i] *= 1 + (Math.random() - 0.5) * 0.3
+      fbGeo.attributes.position.array.set(fbBase)
+      fbGeo.computeVertexNormals()
+      const fbMat = new THREE.MeshBasicMaterial({ color: 0xff8800, transparent: true })
+      const fireball = new THREE.Mesh(fbGeo, fbMat)
+      fireball.scale.setScalar(0.01)
+      fireball.visible = false
+      add(fireball)
+
+      const coreGeo = new THREE.SphereGeometry(1, 26, 20)
+      const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true })
+      const core = new THREE.Mesh(coreGeo, coreMat)
+      core.scale.setScalar(0.01)
+      core.visible = false
+      add(core)
+
+      const bubbles = []
+      for (let i = 0; i < 32; i++) {
+        const bGeo = new THREE.SphereGeometry(1, 20, 14)
+        const bBase = bGeo.attributes.position.array.slice()
+        for (let j = 0; j < bBase.length; j++) bBase[j] *= 1 + (Math.random() - 0.5) * 0.35
+        bGeo.attributes.position.array.set(bBase)
+        bGeo.computeVertexNormals()
+        const bMat = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true })
+        const bm = new THREE.Mesh(bGeo, bMat)
+        bm.scale.setScalar(0.01)
+        bm.visible = false
+        bm.userData.angle = Math.random() * Math.PI * 2
+        bm.userData.dist = 0.8 + Math.random() * 2.5
+        bm.userData.lag = 0.05 + Math.random() * 0.5
+        bm.userData.yOff = (Math.random() - 0.5) * 2
+        bm.userData.origPos = bBase
+        add(bm)
+        bubbles.push(bm)
+      }
+
+      // ─── Phase 3: Stem (hourglass profile) ───
+      const STEM_RAD_SEGS = 38, STEM_H_SEGS = 64
+      const stemGeo = new THREE.CylinderGeometry(1, 1, 1, STEM_RAD_SEGS, STEM_H_SEGS, true)
+      const stemBase = stemGeo.attributes.position.array.slice()
+      for (let i = 0; i < stemBase.length; i += 3) {
+        const y01 = stemBase[i + 1] + 0.5
+        const waist = 0.7 + 0.6 * Math.pow(Math.abs(y01 - 0.5) * 2, 0.7)
+        const flare = y01 < 0.15 ? 1.8 - y01 * 5.3 : (y01 > 0.85 ? 1.0 + (y01 - 0.85) * 6 : 1.0)
+        const r = waist * flare * (1.4 + y01 * 0.6)
+        stemBase[i]     *= r
+        stemBase[i + 2] *= r
+      }
+      stemGeo.attributes.position.array.set(stemBase)
+      stemGeo.computeVertexNormals()
+      const stemMat = new THREE.MeshBasicMaterial({ color: 0xcc5500, transparent: true, side: THREE.DoubleSide })
+      const stem = new THREE.Mesh(stemGeo, stemMat)
+      stem.visible = false
+      add(stem)
+
+      const stemRingGeo = new THREE.TorusGeometry(2.0, 1.8, 26, 52)
+      const stemRingMat = new THREE.MeshBasicMaterial({ color: 0xdd6622, transparent: true })
+      const stemRing = new THREE.Mesh(stemRingGeo, stemRingMat)
+      stemRing.rotation.x = Math.PI / 2
+      stemRing.visible = false
+      add(stemRing)
+
+      const stemRing2Geo = new THREE.TorusGeometry(1.5, 1.2, 20, 40)
+      const stemRing2Mat = new THREE.MeshBasicMaterial({ color: 0xff7744, transparent: true })
+      const stemRing2 = new THREE.Mesh(stemRing2Geo, stemRing2Mat)
+      stemRing2.rotation.x = Math.PI / 2
+      stemRing2.visible = false
+      add(stemRing2)
+
+      const stemRing3Geo = new THREE.TorusGeometry(1.0, 0.8, 16, 32)
+      const stemRing3Mat = new THREE.MeshBasicMaterial({ color: 0xee8855, transparent: true })
+      const stemRing3 = new THREE.Mesh(stemRing3Geo, stemRing3Mat)
+      stemRing3.rotation.x = Math.PI / 2
+      stemRing3.visible = false
+      add(stemRing3)
+
+      // ─── Ground fire ring ───
+      const GROUND_FIRES = 80
+      const groundFires = []
+      const gfGeo = new THREE.ConeGeometry(0.3, 1.2, 8)
+      for (let i = 0; i < GROUND_FIRES; i++) {
+        const mat = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0 })
+        const m = new THREE.Mesh(gfGeo, mat)
+        const angle = (i / GROUND_FIRES) * Math.PI * 2
+        const dist = 7 + Math.random() * 8
+        m.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist)
+        m.userData.baseY = 0
+        m.userData.phase = Math.random() * Math.PI * 2
+        m.userData.speed = 3 + Math.random() * 4
+        m.userData.baseScale = 0.5 + Math.random() * 1.5
+        m.visible = false
+        add(m)
+        groundFires.push(m)
+      }
+
+      // ─── Phase 4: Mushroom cap (layered cloud) ───
+      const capGeo = new THREE.TorusGeometry(7, 4.5, 38, 58)
+      const capOrigPos = capGeo.attributes.position.array.slice()
+      const capMat = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true })
+      const capMesh = new THREE.Mesh(capGeo, capMat)
+      capMesh.scale.setScalar(0.01)
+      capMesh.visible = false
+      add(capMesh)
+
+      const domeGeo = new THREE.SphereGeometry(7, 38, 28, 0, Math.PI * 2, 0, Math.PI * 0.55)
+      const domeOrigPos = domeGeo.attributes.position.array.slice()
+      const domeMat = new THREE.MeshBasicMaterial({ color: 0xff7722, transparent: true })
+      const dome = new THREE.Mesh(domeGeo, domeMat)
+      dome.scale.setScalar(0.01)
+      dome.visible = false
+      add(dome)
+
+      const innerCapGeo = new THREE.SphereGeometry(5, 28, 22, 0, Math.PI * 2, 0, Math.PI * 0.6)
+      const innerCapBase = innerCapGeo.attributes.position.array.slice()
+      for (let i = 0; i < innerCapBase.length; i++) innerCapBase[i] *= 1 + (Math.random() - 0.5) * 0.2
+      innerCapGeo.attributes.position.array.set(innerCapBase)
+      innerCapGeo.computeVertexNormals()
+      const innerCapMat = new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true })
+      const innerCap = new THREE.Mesh(innerCapGeo, innerCapMat)
+      innerCap.scale.setScalar(0.01)
+      innerCap.visible = false
+      add(innerCap)
+
+      const underCapGeo = new THREE.SphereGeometry(6.5, 32, 16, 0, Math.PI * 2, Math.PI * 0.45, Math.PI * 0.35)
+      const underCapBase = underCapGeo.attributes.position.array.slice()
+      const underCapMat = new THREE.MeshBasicMaterial({ color: 0xcc4400, transparent: true })
+      const underCap = new THREE.Mesh(underCapGeo, underCapMat)
+      underCap.scale.setScalar(0.01)
+      underCap.visible = false
+      add(underCap)
+
+      const CAP_BLOBS = 14
+      const capBlobs = []
+      for (let i = 0; i < CAP_BLOBS; i++) {
+        const blobGeo = new THREE.SphereGeometry(1, 16, 12)
+        const blobBase = blobGeo.attributes.position.array.slice()
+        for (let j = 0; j < blobBase.length; j++) blobBase[j] *= 1 + (Math.random() - 0.5) * 0.4
+        blobGeo.attributes.position.array.set(blobBase)
+        blobGeo.computeVertexNormals()
+        const blobMat = new THREE.MeshBasicMaterial({ color: 0xff8833, transparent: true })
+        const blob = new THREE.Mesh(blobGeo, blobMat)
+        blob.visible = false
+        const angle = (i / CAP_BLOBS) * Math.PI * 2 + (Math.random() - 0.5) * 0.4
+        blob.userData.angle = angle
+        blob.userData.dist = 5 + Math.random() * 3
+        blob.userData.yOff = (Math.random() - 0.5) * 2
+        blob.userData.baseScale = 1.5 + Math.random() * 2.5
+        blob.userData.origPos = blobBase
+        add(blob)
+        capBlobs.push(blob)
+      }
+
+      // ─── Smoke puffs ───
+      const SMOKE_N = 72
+      const smokePuffs = []
+      const smokeGeo = new THREE.SphereGeometry(1, 12, 10)
+      for (let i = 0; i < SMOKE_N; i++) {
+        const mat = new THREE.MeshBasicMaterial({ color: 0x444444, transparent: true, opacity: 0, depthWrite: false })
+        const m = new THREE.Mesh(smokeGeo, mat)
+        m.visible = false
+        const s = 1.5 + Math.random() * 4.5
+        m.scale.setScalar(s)
+        m.userData.vy = 0.5 + Math.random() * 1.5
+        m.userData.vx = (Math.random() - 0.5) * 2
+        m.userData.vz = (Math.random() - 0.5) * 2
+        m.userData.rotSpeed = (Math.random() - 0.5) * 0.5
+        m.userData.maxOpacity = 0.2 + Math.random() * 0.3
+        m.userData.lifetime = 3 + Math.random() * 5
+        m.userData.age = 0
+        m.userData.spawned = false
+        add(m)
+        smokePuffs.push(m)
+      }
+      let smokeIdx = 0
+
+      // ─── Ember particles ───
+      const EMBER_N = 8000
+      const embers = []
+      const emberGeo = new THREE.BufferGeometry()
+      emberGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0,0.12,0, -0.07,0,0, 0.07,0,0]), 3))
+      for (let i = 0; i < EMBER_N; i++) {
+        const mat = new THREE.MeshBasicMaterial({ color: 0xffaa33, transparent: true, opacity: 0, side: THREE.DoubleSide })
+        const m = new THREE.Mesh(emberGeo, mat)
+        m.userData.vy = 0.3 + Math.random() * 1.2
+        m.userData.vx = (Math.random() - 0.5) * 2.0
+        m.userData.vz = (Math.random() - 0.5) * 2.0
+        m.userData.lifetime = 1.2 + Math.random() * 3.5
+        m.userData.age = 0
+        m.userData.spawned = false
+        const s = 0.15 + Math.random() * 0.45
+        m.scale.setScalar(s)
+        m.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI)
+        m.visible = false
+        add(m)
+        embers.push(m)
+      }
+
+      // ─── Shockwaves (triple) ───
+      const shockwaves = []
+      for (let si = 0; si < 3; si++) {
+        const swGeo = new THREE.RingGeometry(0.1, 1.2, 96)
+        const swMat = new THREE.MeshBasicMaterial({ color: 0xffcc66, transparent: true, opacity: 0, side: THREE.DoubleSide })
+        const sw = new THREE.Mesh(swGeo, swMat)
+        sw.rotation.x = -Math.PI / 2
+        sw.position.y = 0.05 + si * 0.1
+        sw.userData.delay = si * 0.4
+        sw.userData.speed = 50 + si * 15
+        add(sw)
+        shockwaves.push(sw)
+      }
+
+      // ─── Secondary explosions ───
+      const SEC_EXPLODE_N = 11
+      const secExplosions = []
+      for (let i = 0; i < SEC_EXPLODE_N; i++) {
+        const geo = new THREE.SphereGeometry(1, 12, 10)
+        const mat = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0 })
+        const m = new THREE.Mesh(geo, mat)
+        m.visible = false
+        const angle = Math.random() * Math.PI * 2
+        const dist = 4 + Math.random() * 6
+        m.userData.spawnTime = 0.8 + Math.random() * 2.5
+        m.userData.targetPos = new THREE.Vector3(Math.cos(angle) * dist, 2 + Math.random() * 6, Math.sin(angle) * dist)
+        m.userData.maxScale = 1.0 + Math.random() * 2.0
+        m.userData.lifetime = 0.6 + Math.random() * 0.8
+        m.userData.age = -1
+        add(m)
+        secExplosions.push(m)
+      }
+
+      // ─── Spark particles for UI overlay ───
+      const sparks = []
+      const sparkCanvas = sparkRef.current
+      let sparkCtx = null
+      const dpr = window.devicePixelRatio || 1
+      const sW = window.innerWidth, sH = window.innerHeight
+      if (sparkCanvas) {
+        sparkCanvas.width = sW * dpr
+        sparkCanvas.height = sH * dpr
+        sparkCanvas.style.width = sW + 'px'
+        sparkCanvas.style.height = sH + 'px'
+        sparkCtx = sparkCanvas.getContext('2d')
+        sparkCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      }
+
+      let uiRects = []
+      let bgRects = []
+      function refreshUIRects() {
+        uiRects = []
+        bgRects = []
+        document.querySelectorAll('.tb-btn, button, [class*="rounded-lg"], [class*="shadow"], [class*="border-r"], [class*="border-l"], [class*="border-b"], nav, aside, select, input').forEach(el => {
+          const r = el.getBoundingClientRect()
+          if (r.width > 4 && r.height > 4) {
+            if (r.width < sW * 0.6) uiRects.push(r)
+            else bgRects.push(r)
+          }
+        })
+      }
+      refreshUIRects()
+
+      function spawnSparks(count) {
+        const total = Math.round(count * 1.8)
+        for (let i = 0; i < total; i++) {
+          let x, y
+          const roll = Math.random()
+          if (uiRects.length > 0 && roll < 0.5) {
+            const rect = uiRects[Math.floor(Math.random() * uiRects.length)]
+            const edge = Math.floor(Math.random() * 4)
+            if (edge === 0)      { x = rect.left + Math.random() * rect.width; y = rect.top }
+            else if (edge === 1) { x = rect.left + Math.random() * rect.width; y = rect.bottom }
+            else if (edge === 2) { x = rect.left;  y = rect.top + Math.random() * rect.height }
+            else                 { x = rect.right; y = rect.top + Math.random() * rect.height }
+          } else if (roll < 0.8) {
+            x = Math.random() * sW
+            y = Math.random() * sH
+          } else {
+            const side = Math.floor(Math.random() * 4)
+            if (side === 0)      { x = Math.random() * sW; y = 0 }
+            else if (side === 1) { x = Math.random() * sW; y = sH }
+            else if (side === 2) { x = 0; y = Math.random() * sH }
+            else                 { x = sW; y = Math.random() * sH }
+          }
+          const angle = -Math.PI * 0.25 - Math.random() * Math.PI * 0.5
+          const speed = 80 + Math.random() * 400
+          const type = Math.random()
+          sparks.push({
+            x, y,
+            vx: Math.cos(angle) * speed + (Math.random() - 0.5) * 160,
+            vy: Math.sin(angle) * speed - 80 - Math.random() * 250,
+            life: type < 0.3 ? 0.2 + Math.random() * 0.5 : 0.5 + Math.random() * 2.2,
+            age: 0,
+            size: type < 0.3 ? 0.5 + Math.random() * 2 : 1.5 + Math.random() * 4.5,
+            bright: 0.7 + Math.random() * 0.3,
+            trail: type > 0.3,
+            px: x, py: y, ppx: x, ppy: y,
+          })
+        }
+      }
+
+      function updateSparks(dt, intensity) {
+        if (!sparkCtx) return
+        sparkCtx.clearRect(0, 0, sW, sH)
+        if (intensity <= 0) return
+
+        for (let i = sparks.length - 1; i >= 0; i--) {
+          const s = sparks[i]
+          s.age += dt
+          if (s.age > s.life) { sparks.splice(i, 1); continue }
+          s.ppx = s.px; s.ppy = s.py
+          s.px = s.x; s.py = s.y
+          s.x += s.vx * dt
+          s.vy += 160 * dt
+          s.y += s.vy * dt
+          s.vx *= 0.97
+          const lt = s.age / s.life
+          const a = (1 - lt * lt) * intensity * s.bright
+
+          const whiteHeat = Math.max(0, 1 - lt * 2)
+          const r = 255
+          const g = Math.round(255 * whiteHeat + (1 - whiteHeat) * (180 - lt * 100))
+          const b = Math.round(255 * whiteHeat * whiteHeat + (1 - whiteHeat) * Math.max(0, 80 - lt * 80))
+          const sz = s.size * (1 - lt * 0.4)
+
+          if (s.trail && s.age > dt * 2) {
+            sparkCtx.beginPath()
+            sparkCtx.moveTo(s.ppx, s.ppy)
+            sparkCtx.quadraticCurveTo(s.px, s.py, s.x, s.y)
+            sparkCtx.strokeStyle = `rgba(${r},${g},${b},${a * 0.5})`
+            sparkCtx.lineWidth = sz * 0.8
+            sparkCtx.lineCap = 'round'
+            sparkCtx.stroke()
+          }
+
+          sparkCtx.beginPath()
+          sparkCtx.arc(s.x, s.y, sz, 0, Math.PI * 2)
+          sparkCtx.fillStyle = `rgba(${r},${g},${b},${a})`
+          sparkCtx.fill()
+
+          sparkCtx.beginPath()
+          sparkCtx.arc(s.x, s.y, sz * 4, 0, Math.PI * 2)
+          sparkCtx.fillStyle = `rgba(${r},${g},${b},${a * 0.15})`
+          sparkCtx.fill()
+
+          if (whiteHeat > 0.3) {
+            sparkCtx.beginPath()
+            sparkCtx.arc(s.x, s.y, sz * 0.5, 0, Math.PI * 2)
+            sparkCtx.fillStyle = `rgba(255,255,255,${a * whiteHeat * 0.9})`
+            sparkCtx.fill()
+          }
+        }
+      }
+
+      // ─── Animation ───
+      document.body.classList.add('nuke-whitehot')
+      const TOTAL = 10.0
+      const t0 = performance.now()
+      let raf, emberIdx = 0, flashPeakFired = false
+      const camTgt = new THREE.Vector3()
+      const lookTgt = new THREE.Vector3(0, 5, 0)
+
+      function easeOutExpo(x) { return x >= 1 ? 1 : 1 - Math.pow(2, -10 * x) }
+      function easeOutBack(x) { const c = 2.2; return 1 + (c+1) * Math.pow(x-1,3) + c * Math.pow(x-1,2) }
+
+      function tick() {
+        if (cancelled) return
+        const elapsed = (performance.now() - t0) / 1000
+        if (elapsed > TOTAL) { cleanup(); onCompleteRef.current(); return }
+        const dt = 1/60
+
+        // Screen shake — extreme violence
+        const shakeAmt = elapsed < 0.3
+          ? 50
+          : Math.max(0, 1 - elapsed / 6) * 25
+        const sx = (Math.random()-.5) * shakeAmt
+        const sy = (Math.random()-.5) * shakeAmt
+        const sr = (Math.random()-.5) * shakeAmt * 0.15
+        container.style.transform = `translate(${sx}px,${sy}px) rotate(${sr}deg)`
+
+        // ── White-hot UI skin (driven by elapsed time) ──
+        {
+          const bs = document.body.style
+          let intensity = 0
+          if (elapsed < 0.3) {
+            intensity = 1.0
+          } else if (elapsed < 1.5) {
+            intensity = 1.0 - (elapsed - 0.3) / 1.2 * 0.15
+          } else if (elapsed < 4.0) {
+            intensity = 0.85 - (elapsed - 1.5) / 2.5 * 0.35
+          } else if (elapsed < 7.0) {
+            intensity = 0.5 - (elapsed - 4.0) / 3.0 * 0.3
+          } else if (elapsed < TOTAL) {
+            intensity = 0.2 * (1 - (elapsed - 7.0) / (TOTAL - 7.0))
+          }
+          intensity = Math.max(0, intensity)
+          const bright = 1 + intensity * 3.0
+          const sat = 1 - intensity * 0.9
+          const sepia = intensity * 0.7
+          bs.setProperty('--nuke-bright', bright.toFixed(3))
+          bs.setProperty('--nuke-sat', sat.toFixed(3))
+          bs.setProperty('--nuke-sepia', sepia.toFixed(3))
+          bs.setProperty('--nuke-glow', intensity.toFixed(3))
+          bs.setProperty('--nuke-edge', (intensity * 0.8).toFixed(3))
+
+          if (elapsed < 8.0) {
+            let spawnRate, spawnCount
+            if (elapsed < 0.3)       { spawnRate = 1.0;  spawnCount = 90 }
+            else if (elapsed < 0.8)  { spawnRate = 1.0;  spawnCount = 70 }
+            else if (elapsed < 2.0)  { spawnRate = 0.9;  spawnCount = 50 }
+            else if (elapsed < 4.0)  { spawnRate = 0.7;  spawnCount = 30 }
+            else if (elapsed < 6.0)  { spawnRate = 0.5;  spawnCount = 18 }
+            else                     { spawnRate = 0.4;  spawnCount = 10 }
+            if (Math.random() < spawnRate) spawnSparks(spawnCount)
+          }
+          if (elapsed > 2 && Math.floor(elapsed) !== Math.floor(elapsed - dt)) refreshUIRects()
+          updateSparks(dt, intensity)
+        }
+
+        // ── Heat distortion overlay ──
+        if (heatRef.current) {
+          const h = heatRef.current.style
+          if (elapsed < 5) {
+            const intensity = Math.max(0, 1 - elapsed / 5)
+            h.opacity = (intensity * 0.4).toString()
+            h.background = `repeating-linear-gradient(${elapsed * 200 % 360}deg, transparent, rgba(255,150,0,${intensity * 0.08}) 2px, transparent 4px)`
+          } else {
+            h.opacity = '0'
+          }
+        }
+
+        // ── Nuclear melt overlay ──
+        if (meltRef.current) {
+          const s = meltRef.current.style
+          if (elapsed < 0.1) {
+            s.opacity = '1'
+            s.background = 'radial-gradient(circle at 50% 80%, rgba(255,255,255,1), rgba(255,255,200,0.95) 20%, rgba(255,200,50,0.8) 40%, rgba(255,100,0,0.6) 60%, rgba(200,30,0,0.4) 80%, rgba(100,0,0,0.2) 100%)'
+          } else if (elapsed < 4.0) {
+            const p = (elapsed - 0.1) / 3.9
+            const op = 1.0 * (1 - p * 0.5)
+            s.opacity = op.toString()
+            const r = 255, g = Math.round(220 - p * 180), b = Math.round(120 - p * 120)
+            s.background = `radial-gradient(circle at 50% 80%, rgba(${r},${g},${b},0.8), rgba(255,${Math.round(100-p*80)},0,0.5) 35%, rgba(200,30,0,0.3) 60%, rgba(100,0,0,0.15) 80%, transparent 100%)`
+          } else {
+            const fade = 1 - Math.min(1, (elapsed - 4.0) / 4.5)
+            s.opacity = (fade * 0.4).toString()
+            s.background = 'radial-gradient(circle at 50% 80%, rgba(200,40,0,0.4), rgba(120,15,0,0.2) 50%, transparent 100%)'
+          }
+        }
+
+        // ── Flash overlays (double flash) ──
+        if (flashRef.current) {
+          if (elapsed < 0.08) flashRef.current.style.opacity = '1'
+          else if (elapsed < 0.25) flashRef.current.style.opacity = (0.9 * (1 - (elapsed - 0.08) / 0.17)).toString()
+          else if (elapsed < 0.35) flashRef.current.style.opacity = (0.3 * ((elapsed - 0.25) / 0.1)).toString()
+          else if (elapsed < 0.5) flashRef.current.style.opacity = (0.3 * (1 - (elapsed - 0.35) / 0.15)).toString()
+          else flashRef.current.style.opacity = '0'
+        }
+
+        // ── Peak flashpoint: orange/yellow/white wipe + callback ──
+        if (peakFlashRef.current) {
+          const pf = peakFlashRef.current.style
+          if (elapsed >= 0.2 && elapsed < 0.35) {
+            const p = (elapsed - 0.2) / 0.15
+            pf.opacity = Math.min(1, p * 2).toString()
+            pf.background = `radial-gradient(ellipse at 50% 60%, rgba(255,255,255,${1 * Math.min(1, p * 2)}), rgba(255,255,200,${0.95 * Math.min(1, p * 1.5)}) 15%, rgba(255,220,80,${0.85 * Math.min(1, p * 1.3)}) 35%, rgba(255,160,20,${0.7 * p}) 55%, rgba(255,100,0,${0.5 * p}) 75%, rgba(200,50,0,${0.3 * p}) 100%)`
+          } else if (elapsed >= 0.35 && elapsed < 1.0) {
+            const fade = 1 - (elapsed - 0.35) / 0.65
+            pf.opacity = fade.toString()
+            pf.background = `radial-gradient(ellipse at 50% 60%, rgba(255,200,80,${0.6 * fade}), rgba(255,120,0,${0.4 * fade}) 40%, rgba(200,50,0,${0.2 * fade}) 70%, transparent 100%)`
+          } else if (elapsed >= 1.0) {
+            pf.opacity = '0'
+          }
+        }
+        if (!flashPeakFired && elapsed >= 0.25) {
+          flashPeakFired = true
+          if (onFlashPeakRef.current) onFlashPeakRef.current()
+        }
+
+        // ── Phase 1: Flash (0–0.5s) ──
+        if (elapsed < 0.5) {
+          const p = easeOutExpo(elapsed / 0.5)
+          flashMesh.scale.setScalar(p * 15)
+          flashMat.opacity = 1 - p * 0.5
+          flashMat.color.copy(sampleRamp(p * 0.1))
+          ptLight.intensity = 25 * (1 - p)
+          ptLight.color.set(0xffffdd)
+
+          blastDisc.visible = true
+          blastDisc.scale.setScalar(1 + p * 25)
+          blastDiscMat.opacity = (1 - p) * 0.8
+        } else {
+          flashMesh.visible = false
+          blastDisc.visible = false
+        }
+
+        // Shrapnel
+        if (elapsed < 0.05) shrapnel.forEach(s => { s.visible = true; s.position.set(0,0,0) })
+        shrapnel.forEach((s, si) => {
+          if (!s.visible) return
+          s.userData.age += dt
+          const lt = s.userData.age / s.userData.lifetime
+          if (lt > 1) { s.visible = false; return }
+          s.userData.vel.y -= 9.8 * dt
+          s.userData.vel.multiplyScalar(0.985)
+          s.position.add(s.userData.vel.clone().multiplyScalar(dt))
+          s.rotation.x += 6 * dt; s.rotation.y += 5 * dt
+          s.material.color.copy(sampleRamp(lt * 0.4))
+          s.material.opacity = 1 - lt * lt
+
+          if (si % 4 === 0 && lt < 0.7 && trailIdx < fireTrails.length) {
+            const t = fireTrails[trailIdx % fireTrails.length]
+            t.position.copy(s.position)
+            t.visible = true
+            t.userData.age = 0
+            t.material.opacity = 0.7
+            t.material.color.copy(sampleRamp(lt * 0.3))
+            trailIdx++
+          }
+        })
+
+        // Fire trails update
+        fireTrails.forEach(t => {
+          if (!t.visible) return
+          t.userData.age += dt
+          const lt = t.userData.age / t.userData.lifetime
+          if (lt > 1) { t.visible = false; return }
+          t.material.opacity = (1 - lt) * 0.5
+          t.scale.multiplyScalar(0.95)
+          t.material.color.copy(sampleRamp(0.2 + lt * 0.4))
+        })
+
+        // ── Phase 2: Fireball (0.2–6s) ──
+        if (elapsed >= 0.2 && elapsed < 6.5) {
+          fireball.visible = true
+          core.visible = true
+          const p2 = Math.min(1, (elapsed - 0.2) / 1.2)
+          const r = 2 + p2 * 6
+          fireball.scale.setScalar(r)
+          fireball.position.y = p2 * 8
+          const rt = 0.1 + p2 * 0.2
+          fbMat.color.copy(sampleRamp(rt))
+
+          core.scale.setScalar(r * 0.5 * (1 - Math.min(1, (elapsed - 0.2) / 3)))
+          core.position.copy(fireball.position)
+          coreMat.opacity = Math.max(0, 1 - (elapsed - 0.2) / 2.5)
+          coreMat.color.copy(sampleRamp(rt * 0.3))
+
+          const pos = fbGeo.attributes.position.array
+          for (let i = 0; i < fbBase.length; i += 3) {
+            const n = fbm(elapsed * 2.5 + fbBase[i+1] * 2, fbBase[i] * 2, fbBase[i+2] * 2)
+            pos[i]   = fbBase[i]   * (1 + n * 0.2)
+            pos[i+1] = fbBase[i+1] * (1 + n * 0.15)
+            pos[i+2] = fbBase[i+2] * (1 + n * 0.2)
+          }
+          fbGeo.attributes.position.needsUpdate = true
+
+          ptLight.position.set(0, fireball.position.y, 0)
+          ptLight.intensity = Math.max(0, 20 * (1 - (elapsed - 0.2) / 5.5))
+          ptLight.color.copy(sampleRamp(rt))
+
+          bubbles.forEach(b => {
+            b.visible = true
+            const br = (0.3 + Math.random() * 0.12) * r
+            b.scale.setScalar(br)
+            const a = b.userData.angle + elapsed * 0.8
+            b.position.set(
+              Math.cos(a) * b.userData.dist * p2,
+              fireball.position.y + b.userData.yOff - b.userData.lag * 3,
+              Math.sin(a) * b.userData.dist * p2
+            )
+            b.material.color.copy(sampleRamp(rt + 0.05 + Math.random() * 0.05))
+            const bp = b.geometry.attributes.position.array, bo = b.userData.origPos
+            for (let i = 0; i < bo.length; i += 3) {
+              const n = fbm(elapsed * 3 + bo[i+1] * 3, bo[i] * 3, bo[i+2] * 3)
+              bp[i]   = bo[i]   * (1 + n * 0.2)
+              bp[i+1] = bo[i+1] * (1 + n * 0.15)
+              bp[i+2] = bo[i+2] * (1 + n * 0.2)
+            }
+            b.geometry.attributes.position.needsUpdate = true
+          })
+        }
+
+        // ── Phase 3: Stem + rings (0.5–6.5s) ──
+        if (elapsed >= 0.5 && elapsed < 6.5) {
+          stem.visible = true
+          stemRing.visible = true
+          stemRing2.visible = true
+          stemRing3.visible = true
+          const p3 = Math.min(1, (elapsed - 0.5) / 1.5)
+          const h = p3 * 9
+          stem.scale.set(1, Math.max(0.01, h), 1)
+          stem.position.y = h / 2
+
+          const sp = stemGeo.attributes.position.array
+          for (let i = 0; i < stemBase.length; i += 3) {
+            const turb = fbm(elapsed * 1.2 + stemBase[i+1] * 3, stemBase[i] * 2, stemBase[i+2] * 2)
+            const turb2 = fbm(stemBase[i] * 2, stemBase[i+1] * 3, elapsed * 1.2)
+            sp[i]   = stemBase[i]   + turb * 0.25
+            sp[i+1] = stemBase[i+1]
+            sp[i+2] = stemBase[i+2] + turb2 * 0.25
+          }
+          stemGeo.attributes.position.needsUpdate = true
+          stemMat.color.copy(sampleRamp(0.25 + p3 * 0.2))
+
+          const ringP = Math.min(1, (elapsed - 0.8) / 2.0)
+          const ringExpand = easeOutExpo(ringP)
+          stemRing.position.y = 1.5 + p3 * 2.5
+          const r1s = 0.3 + ringExpand * 2.5
+          stemRing.scale.set(r1s, r1s * 0.25 + ringExpand * 0.15, r1s)
+          stemRingMat.color.copy(sampleRamp(0.3 + p3 * 0.15))
+          stemRingMat.opacity = Math.min(1, ringP * 3) * (1 - Math.max(0, (elapsed - 4) / 2.5))
+
+          const ring2P = Math.min(1, Math.max(0, (elapsed - 1.2)) / 2.0)
+          const ring2Expand = easeOutExpo(ring2P)
+          stemRing2.position.y = 2.5 + p3 * 3.5
+          const r2s = 0.2 + ring2Expand * 1.8
+          stemRing2.scale.set(r2s, r2s * 0.2 + ring2Expand * 0.12, r2s)
+          stemRing2Mat.color.copy(sampleRamp(0.28 + p3 * 0.18))
+          stemRing2Mat.opacity = Math.min(1, ring2P * 3) * (1 - Math.max(0, (elapsed - 3.5) / 2.5))
+
+          const ring3P = Math.min(1, Math.max(0, (elapsed - 1.6)) / 2.0)
+          const ring3Expand = easeOutExpo(ring3P)
+          stemRing3.position.y = 3.5 + p3 * 4.0
+          const r3s = 0.15 + ring3Expand * 1.2
+          stemRing3.scale.set(r3s, r3s * 0.18 + ring3Expand * 0.1, r3s)
+          stemRing3Mat.color.copy(sampleRamp(0.25 + p3 * 0.2))
+          stemRing3Mat.opacity = Math.min(1, ring3P * 3) * (1 - Math.max(0, (elapsed - 3) / 2.5))
+        }
+
+        // Ground fire
+        if (elapsed >= 0.4 && elapsed < 7) {
+          const gfP = Math.min(1, (elapsed - 0.4) / 1.5)
+          groundFires.forEach(gf => {
+            gf.visible = true
+            const flicker = 0.5 + 0.5 * Math.sin(elapsed * gf.userData.speed + gf.userData.phase)
+            const s = gf.userData.baseScale * gfP * flicker
+            gf.scale.set(s, s * (1.5 + Math.sin(elapsed * gf.userData.speed * 1.3) * 0.5), s)
+            gf.position.y = s * 0.5
+            gf.material.opacity = gfP * flicker * 0.8 * (1 - Math.max(0, (elapsed - 4.5) / 2.5))
+            gf.material.color.copy(sampleRamp(0.2 + flicker * 0.2))
+          })
+          groundLight.intensity = gfP * 8 * (1 - Math.max(0, (elapsed - 4) / 3))
+        }
+
+        // ── Phase 4: Mushroom cap (1.2–6.5s) ──
+        if (elapsed >= 1.2 && elapsed < 6.5) {
+          capMesh.visible = true
+          dome.visible = true
+          innerCap.visible = true
+          underCap.visible = true
+          const p4 = Math.min(1, (elapsed - 1.2) / 0.8)
+          const cs = easeOutBack(p4)
+          const capY = 9 + Math.min(1, (elapsed - 1.2) / 2) * 3.5
+          const billow = 1 + Math.sin(elapsed * 1.5) * 0.04
+
+          capMesh.scale.set(cs * 1.3 * billow, cs * 0.55, cs * 1.3 * billow)
+          capMesh.position.y = capY
+          capMesh.rotation.x = Math.PI / 2
+
+          dome.scale.set(cs * 1.05 * billow, cs * 0.85, cs * 1.05 * billow)
+          dome.position.y = capY + 1.5 * cs
+          dome.rotation.x = 0
+
+          innerCap.scale.set(cs * 0.8, cs * 0.7, cs * 0.8)
+          innerCap.position.y = capY + 2.5 * cs
+          innerCap.rotation.x = 0
+
+          underCap.scale.set(cs * 1.1 * billow, cs * 0.6, cs * 1.1 * billow)
+          underCap.position.y = capY - 1.5 * cs
+          underCap.rotation.x = 0
+
+          const cr = 0.15 + p4 * 0.2
+          capMat.color.copy(sampleRamp(cr))
+          domeMat.color.copy(sampleRamp(cr - 0.02))
+          innerCapMat.color.copy(sampleRamp(cr * 0.6))
+          underCapMat.color.copy(sampleRamp(cr + 0.12))
+
+          capLight.position.y = capY
+          capLight.intensity = 15 * (1 - Math.max(0, (elapsed - 2) / 4))
+          capLight.color.copy(sampleRamp(cr))
+
+          const cp = capGeo.attributes.position.array
+          for (let i = 0; i < capOrigPos.length; i += 3) {
+            const n = fbm(elapsed * 1.5 + capOrigPos[i+1] * 1.5, capOrigPos[i] * 1.5, capOrigPos[i+2] * 1.5)
+            const amp = 0.12 + (elapsed - 1.2) * 0.04
+            cp[i]   = capOrigPos[i]   * (1 + n * amp)
+            cp[i+1] = capOrigPos[i+1] * (1 + n * amp * 0.6)
+            cp[i+2] = capOrigPos[i+2] * (1 + n * amp)
+          }
+          capGeo.attributes.position.needsUpdate = true
+
+          const dp = domeGeo.attributes.position.array
+          for (let i = 0; i < domeOrigPos.length; i += 3) {
+            const n = fbm(elapsed * 1.8 + domeOrigPos[i] * 1.2, domeOrigPos[i+1] * 1.2, domeOrigPos[i+2] * 1.2)
+            dp[i]   = domeOrigPos[i]   * (1 + n * 0.15)
+            dp[i+1] = domeOrigPos[i+1] * (1 + n * 0.12)
+            dp[i+2] = domeOrigPos[i+2] * (1 + n * 0.15)
+          }
+          domeGeo.attributes.position.needsUpdate = true
+
+          const icp = innerCapGeo.attributes.position.array
+          for (let i = 0; i < innerCapBase.length; i += 3) {
+            const n = fbm(elapsed * 2.2 + innerCapBase[i] * 1.8, innerCapBase[i+1] * 1.8, innerCapBase[i+2] * 1.8)
+            icp[i]   = innerCapBase[i]   * (1 + n * 0.18)
+            icp[i+1] = innerCapBase[i+1] * (1 + n * 0.14)
+            icp[i+2] = innerCapBase[i+2] * (1 + n * 0.18)
+          }
+          innerCapGeo.attributes.position.needsUpdate = true
+
+          capBlobs.forEach(b => {
+            b.visible = true
+            const a = b.userData.angle + elapsed * 0.6
+            const d = b.userData.dist * cs * billow
+            b.position.set(Math.cos(a) * d, capY + b.userData.yOff * cs, Math.sin(a) * d)
+            b.scale.setScalar(b.userData.baseScale * cs)
+            b.material.color.copy(sampleRamp(cr + 0.05))
+            b.material.opacity = 0.85
+            const bp = b.geometry.attributes.position.array, bo = b.userData.origPos
+            for (let i = 0; i < bo.length; i += 3) {
+              const n = fbm(elapsed * 2.5 + bo[i+1] * 2, bo[i] * 2, bo[i+2] * 2)
+              bp[i]   = bo[i]   * (1 + n * 0.25)
+              bp[i+1] = bo[i+1] * (1 + n * 0.2)
+              bp[i+2] = bo[i+2] * (1 + n * 0.25)
+            }
+            b.geometry.attributes.position.needsUpdate = true
+          })
+
+          while (emberIdx < EMBER_N && elapsed >= 1.2 + emberIdx * (3.0 / EMBER_N)) {
+            const e = embers[emberIdx]
+            e.visible = true
+            e.userData.spawned = true
+            const th = Math.random() * Math.PI * 2, er = 2 + Math.random() * 8
+            e.position.set(Math.cos(th) * er, capY + (Math.random() - 0.5) * 6, Math.sin(th) * er)
+            emberIdx++
+          }
+        }
+
+        // Secondary explosions
+        secExplosions.forEach(se => {
+          if (elapsed >= se.userData.spawnTime && se.userData.age < 0) {
+            se.userData.age = 0
+            se.visible = true
+            se.position.copy(se.userData.targetPos)
+          }
+          if (se.userData.age >= 0 && se.visible) {
+            se.userData.age += dt
+            const lt = se.userData.age / se.userData.lifetime
+            if (lt > 1) { se.visible = false; return }
+            const s = easeOutExpo(Math.min(1, lt * 3)) * se.userData.maxScale
+            se.scale.setScalar(s)
+            se.material.opacity = lt < 0.2 ? lt / 0.2 : Math.max(0, 1 - (lt - 0.2) / 0.8)
+            se.material.color.copy(sampleRamp(lt * 0.35))
+          }
+        })
+
+        // Update embers
+        embers.forEach(e => {
+          if (!e.userData.spawned || !e.visible) return
+          e.userData.age += dt
+          const lt = e.userData.age / e.userData.lifetime
+          if (lt > 1) { e.visible = false; return }
+          e.position.x += e.userData.vx * dt
+          e.position.y += e.userData.vy * dt
+          e.position.z += e.userData.vz * dt
+          e.userData.vy -= 0.15 * dt
+          e.rotation.x += dt * 2.5; e.rotation.z += dt * 1.5
+          e.material.opacity = lt < 0.08 ? lt / 0.08 : Math.max(0, 1 - (lt - 0.08) / 0.92)
+          e.material.color.copy(sampleRamp(0.1 + lt * 0.5))
+        })
+
+        // Smoke puffs — spawn from fireball and stem
+        if (elapsed >= 0.5 && smokeIdx < SMOKE_N) {
+          const rate = elapsed < 2 ? 12 : 4
+          while (smokeIdx < SMOKE_N && Math.random() < rate * dt) {
+            const sp = smokePuffs[smokeIdx]
+            sp.visible = true
+            sp.userData.spawned = true
+            sp.userData.age = 0
+            const th = Math.random() * Math.PI * 2
+            const r = 1 + Math.random() * 5
+            const baseY = elapsed < 2 ? 3 + Math.random() * 6 : 6 + Math.random() * 8
+            sp.position.set(Math.cos(th) * r, baseY, Math.sin(th) * r)
+            smokeIdx++
+          }
+        }
+        smokePuffs.forEach(sp => {
+          if (!sp.userData.spawned || !sp.visible) return
+          sp.userData.age += dt
+          const lt = sp.userData.age / sp.userData.lifetime
+          if (lt > 1) { sp.visible = false; return }
+          sp.position.y += sp.userData.vy * dt
+          sp.position.x += sp.userData.vx * dt
+          sp.position.z += sp.userData.vz * dt
+          sp.rotation.y += sp.userData.rotSpeed * dt
+          sp.scale.multiplyScalar(1 + dt * 0.15)
+          const fadeIn = Math.min(1, lt * 5)
+          const fadeOut = Math.max(0, 1 - (lt - 0.4) / 0.6)
+          sp.material.opacity = fadeIn * fadeOut * sp.userData.maxOpacity
+          const grey = Math.round(60 + lt * 80)
+          sp.material.color.setRGB(grey/255, grey/255, grey/255)
+        })
+
+        // Triple shockwaves
+        shockwaves.forEach(sw => {
+          const st0 = elapsed - sw.userData.delay
+          if (st0 > 0 && st0 < 3) {
+            sw.visible = true
+            const st = st0 / 3
+            sw.scale.setScalar(1 + st * sw.userData.speed)
+            sw.material.opacity = (1 - st) * 0.7
+            sw.material.color.copy(sampleRamp(st * 0.25))
+          } else {
+            sw.visible = false
+          }
+        })
+
+        // ── Phase 5: Dissipation (5.0–9.0s) ──
+        if (elapsed >= 5.0) {
+          const fade = 1 - Math.min(1, (elapsed - 5.0) / 4.0)
+          fbMat.opacity = fade
+          coreMat.opacity = fade * 0.3
+          stemMat.opacity = fade
+          stemRingMat.opacity = fade * 0.7
+          stemRing2Mat.opacity = fade * 0.6
+          stemRing3Mat.opacity = fade * 0.5
+          capMat.opacity = fade
+          domeMat.opacity = fade
+          bubbles.forEach(b => { b.material.opacity = fade })
+          fireball.position.y += 0.6 * dt
+          fireball.scale.multiplyScalar(0.996)
+          core.position.y = fireball.position.y
+          bubbles.forEach(b => { b.position.y += 0.4 * dt; b.scale.multiplyScalar(0.996) })
+          ambLight.intensity = 4 * fade
+          fillLight.intensity = 2 * fade
+          rimLight.intensity = 1.5 * fade
+        }
+
+        // ── Camera — dramatic orbit ──
+        const orbitAngle = elapsed * 0.15
+        if (elapsed < 0.3) {
+          camTgt.set(0, 3, 28)
+        } else if (elapsed < 2.0) {
+          const ct = (elapsed - 0.3) / 1.7
+          camTgt.set(Math.sin(orbitAngle) * 5, 4 + ct * 7, 28 - ct * 10)
+        } else if (elapsed < 5.0) {
+          const ct = (elapsed - 2.0) / 3.0
+          camTgt.set(Math.sin(orbitAngle) * 8, 10 + ct * 4, 18 - ct * 2)
+        } else {
+          const ct = Math.min(1, (elapsed - 5.0) / 4.0)
+          camTgt.set(Math.sin(orbitAngle) * 4, 14 - ct * 6, 16 + ct * 18)
+        }
+        camera.position.lerp(camTgt, 0.05)
+        lookTgt.set(0, Math.min(13, 4 + elapsed * 1.2), 0)
+        camera.lookAt(lookTgt)
+
+        renderer.render(scene, camera)
+        raf = requestAnimationFrame(tick)
+      }
+
+      raf = requestAnimationFrame(tick)
+
+      function cleanup() {
+        cancelAnimationFrame(raf)
+        container.style.transform = ''
+        document.body.classList.remove('nuke-whitehot')
+        const bs = document.body.style
+        bs.removeProperty('--nuke-bright')
+        bs.removeProperty('--nuke-sat')
+        bs.removeProperty('--nuke-sepia')
+        bs.removeProperty('--nuke-glow')
+        bs.removeProperty('--nuke-edge')
+        if (sparkCtx) sparkCtx.clearRect(0, 0, sW, sH)
+        if (peakFlashRef.current) peakFlashRef.current.style.opacity = '0'
+        if (meltRef.current) meltRef.current.style.opacity = '0'
+        if (heatRef.current) heatRef.current.style.opacity = '0'
+        objs.forEach(o => { scene.remove(o); o.geometry?.dispose(); o.material?.dispose() })
+        renderer.dispose()
+        renderer.domElement.parentNode?.removeChild(renderer.domElement)
+      }
     }
-    rafId = requestAnimationFrame(render)
 
-    return () => { cancelAnimationFrame(rafId); cvs.style.transform = '' }
-  }, [onComplete])
+    run()
+    return () => { cancelled = true }
+  }, [])
 
   return (
-    <canvas ref={canvasRef} style={{
-      position: 'fixed', inset: 0, zIndex: 10000, pointerEvents: 'none',
-      width: '100vw', height: '100vh',
-    }} />
+    <>
+      <div ref={meltRef} style={{
+        position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none',
+        opacity: 0, mixBlendMode: 'screen',
+      }} />
+      <div ref={heatRef} style={{
+        position: 'fixed', inset: 0, zIndex: 10002, pointerEvents: 'none',
+        opacity: 0, mixBlendMode: 'overlay',
+      }} />
+      <div ref={peakFlashRef} style={{
+        position: 'fixed', inset: 0, zIndex: 10004, pointerEvents: 'none',
+        opacity: 0,
+      }} />
+      <canvas ref={sparkRef} style={{
+        position: 'fixed', inset: 0, zIndex: 10003, pointerEvents: 'none',
+      }} />
+      <div ref={flashRef} style={{
+        position: 'fixed', inset: 0, zIndex: 10001, pointerEvents: 'none',
+        background: 'white', opacity: 0,
+      }} />
+      <div ref={containerRef} style={{
+        position: 'fixed', inset: 0, zIndex: 10000, pointerEvents: 'none',
+        width: '100vw', height: '100vh',
+      }} />
+    </>
   )
 }
 
+// BloodFill extracted to BloodFill.jsx
+
 const ToolBtn = ({ children, onClick, disabled, active, title, style, dm = true }) => (
   <button
-    className={`tb-btn flex flex-col items-center justify-center px-3 py-1 rounded text-xs gap-0.5 transition-colors
+    className={`tb-btn flex flex-col items-center justify-center px-3 py-1 rounded-lg text-xs gap-0.5 transition-colors
       ${active
         ? (dm ? 'bg-blue-500/30 text-white' : 'bg-blue-500/20 text-blue-700')
         : (dm ? 'text-gray-300 hover:bg-white/10 hover:text-white' : 'text-gray-600 hover:bg-black/5 hover:text-gray-900')}
@@ -963,7 +1785,7 @@ const ToolBtn = ({ children, onClick, disabled, active, title, style, dm = true 
   </button>
 )
 
-function ToolDropdown({ label, icon, children, dm, iconOnly }) {
+function ToolDropdown({ label, icon, children, dm, iconOnly, bloodRain }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   useEffect(() => {
@@ -975,7 +1797,7 @@ function ToolDropdown({ label, icon, children, dm, iconOnly }) {
   return (
     <div className="relative shrink-0" ref={ref}>
       <button
-        className={`tb-btn flex flex-col items-center justify-center ${iconOnly ? 'px-1.5 w-8' : 'px-2'} py-1 rounded text-xs gap-0.5 transition-colors cursor-pointer
+        className={`tb-btn flex flex-col items-center justify-center ${iconOnly ? 'px-1.5 w-8' : 'px-2'} py-1 rounded-lg text-xs gap-0.5 transition-colors cursor-pointer
           ${open
             ? (dm ? 'bg-blue-500/30 text-white' : 'bg-blue-500/20 text-blue-700')
             : (dm ? 'text-gray-300 hover:bg-white/10 hover:text-white' : 'text-gray-600 hover:bg-black/5 hover:text-gray-900')}`}
@@ -987,9 +1809,10 @@ function ToolDropdown({ label, icon, children, dm, iconOnly }) {
       </button>
       {open && (
         <div
-          className={`absolute top-full left-0 mt-1 rounded-lg shadow-xl border z-50 py-1 min-w-[160px] ${dm ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}
+          className={`absolute top-full left-0 mt-1 rounded-lg shadow-xl border z-50 py-1 min-w-[160px] overflow-hidden ${dm ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}
           onClick={(e) => { if (e.target.closest('[data-drop-item]')) setOpen(false) }}
         >
+          {bloodRain && <BloodFill />}
           {children}
         </div>
       )}
@@ -1035,7 +1858,7 @@ const AlignIcon = ({ type }) => {
   return icons[type] || null
 }
 
-function AlignPanel({ canvasState }) {
+function AlignPanel({ canvasState, bloodRain }) {
   const [open, setOpen] = useState(false)
   const [alignMode, setAlignMode] = useState('canvas')
   const panelRef = useRef(null)
@@ -1065,7 +1888,8 @@ function AlignPanel({ canvasState }) {
         <span>Align</span>
       </ToolBtn>
       {open && (
-        <div className={`absolute top-full left-0 mt-1 rounded-lg shadow-xl z-50 p-3 w-56 border ${dm ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+        <div className={`absolute top-full left-0 mt-1 rounded-lg shadow-xl z-50 p-3 w-56 border overflow-hidden ${dm ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+          {bloodRain && <BloodFill />}
           {isMultiSelect && (
             <div className={`flex items-center rounded-md p-0.5 mb-2 ${dm ? 'bg-gray-700' : 'bg-gray-50'}`}>
               <button
@@ -1189,7 +2013,7 @@ function TileIcon({ mode, size = 40 }) {
 
 const PASTEBOARD = 300
 
-function TilePanel({ canvasState }) {
+function TilePanel({ canvasState, bloodRain }) {
   const [open, setOpen] = useState(false)
   const panelRef = useRef(null)
   const { selectedObject, canvasRef, saveUndoState, refreshObjects, canvasW, canvasH, darkMode: dm } = canvasState
@@ -1289,9 +2113,10 @@ function TilePanel({ canvasState }) {
         <span>Tiling</span>
       </ToolBtn>
       {open && (
-        <div className={`absolute top-full left-0 mt-1 rounded-lg shadow-xl z-50 p-3 w-auto ${
+        <div className={`absolute top-full left-0 mt-1 rounded-lg shadow-xl z-50 p-3 w-auto overflow-hidden ${
           dm ? 'bg-gray-800 border border-gray-600' : 'bg-white border border-gray-200'
         }`}>
+          {bloodRain && <BloodFill />}
           <div className={`text-[10px] uppercase tracking-wider font-semibold mb-2 ${dm ? 'text-gray-400' : 'text-gray-400'}`}>Tiling</div>
           <div className="flex gap-2">
             {TILE_MODES.map(m => (
@@ -1371,115 +2196,23 @@ function TilePanel({ canvasState }) {
   )
 }
 
-const BRUSH_SHAPES = [
-  { id: 'circle', label: 'Circle', icon: () => <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" fill="currentColor"/></svg> },
-  { id: 'square', label: 'Square', icon: (angle) => <svg width="14" height="14" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" fill="currentColor" transform={`rotate(${-angle} 7 7)`}/></svg> },
-  { id: 'diamond', label: 'Diamond', icon: (angle) => <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 13,7 7,13 1,7" fill="currentColor" transform={`rotate(${-angle} 7 7)`}/></svg> },
-  { id: 'wedge', label: 'Wedge', icon: (angle) => <svg width="14" height="14" viewBox="0 0 14 14"><ellipse cx="7" cy="7" rx="6" ry="2" transform={`rotate(${-angle} 7 7)`} fill="currentColor"/></svg> },
-]
-
 function BlobBrushSettings({ canvasState }) {
-  const {
-    activeTool, setActiveTool,
-    blobBrushSize, setBlobBrushSize,
-    blobBrushColor, setBlobBrushColor,
-    blobBrushShape, setBlobBrushShape,
-    blobBrushAngle, setBlobBrushAngle,
-    darkMode,
-  } = canvasState
-  const dm = !!darkMode
-  const [open, setOpen] = useState(false)
-  const panelRef = useRef(null)
+  const { activeTool, setActiveTool, darkMode } = canvasState
   const isActive = activeTool === 'blobBrush'
 
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (panelRef.current && !panelRef.current.contains(e.target)) setOpen(false)
-    }
-    if (open) document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [open])
-
   return (
-    <div className="relative flex items-center" ref={panelRef}>
-      <ToolBtn
-        dm={dm}
-        onClick={() => setActiveTool(isActive ? 'select' : 'blobBrush')}
-        active={isActive}
-        title="Blob Brush (B)"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18.37 2.63a2.12 2.12 0 013 3L14 13l-4 1 1-4z" />
-          <path d="M9 14c-2.5 2-4.5 4-4.5 6a2.5 2.5 0 005 0c0-2-1-3.5-2-5" />
-        </svg>
-        <span>Blob</span>
-      </ToolBtn>
-      {isActive && (
-        <button
-          className={`ml-0.5 px-1 py-1 rounded transition-colors ${dm ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
-          onClick={() => setOpen(v => !v)}
-          title="Brush Settings"
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z" /></svg>
-        </button>
-      )}
-      {open && (
-        <div className={`absolute top-full left-0 mt-1 rounded-lg shadow-xl z-50 p-3 w-56 border ${dm ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
-          <div className={`text-[10px] uppercase tracking-wider font-semibold mb-2 ${dm ? 'text-gray-500' : 'text-gray-400'}`}>Brush Settings</div>
-          <div className="space-y-3">
-            <div>
-              <span className={`text-xs block mb-1 ${dm ? 'text-gray-300' : 'text-gray-600'}`}>Tip Shape</span>
-              <div className="flex gap-1">
-                {BRUSH_SHAPES.map(s => (
-                  <button
-                    key={s.id}
-                    className={`w-8 h-8 rounded flex items-center justify-center transition-colors ${
-                      blobBrushShape === s.id
-                        ? (dm ? 'bg-gray-600 text-white' : 'bg-gray-700 text-white')
-                        : (dm ? 'text-gray-400 hover:bg-gray-700 hover:text-gray-200' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600')
-                    }`}
-                    onClick={() => setBlobBrushShape(s.id)}
-                    title={s.label}
-                  >{s.icon(blobBrushAngle)}</button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className={`text-xs ${dm ? 'text-gray-300' : 'text-gray-600'}`}>Size</span>
-                <span className={`text-xs tabular-nums ${dm ? 'text-gray-500' : 'text-gray-400'}`}>{blobBrushSize}px</span>
-              </div>
-              <input
-                type="range" min="4" max="100" value={blobBrushSize}
-                onChange={(e) => setBlobBrushSize(Number(e.target.value))}
-                className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer ${dm ? 'bg-gray-600 accent-blue-400' : 'bg-gray-200 accent-gray-600'}`}
-              />
-            </div>
-            {blobBrushShape !== 'circle' && (
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className={`text-xs ${dm ? 'text-gray-300' : 'text-gray-600'}`}>Angle</span>
-                  <span className={`text-xs tabular-nums ${dm ? 'text-gray-500' : 'text-gray-400'}`}>{blobBrushAngle}°</span>
-                </div>
-                <input
-                  type="range" min="0" max="180" value={blobBrushAngle}
-                  onChange={(e) => setBlobBrushAngle(Number(e.target.value))}
-                  className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer ${dm ? 'bg-gray-600 accent-blue-400' : 'bg-gray-200 accent-gray-600'}`}
-                />
-              </div>
-            )}
-            <div>
-              <span className={`text-xs block mb-1 ${dm ? 'text-gray-300' : 'text-gray-600'}`}>Color</span>
-              <ColorPicker
-                value={blobBrushColor}
-                onChange={setBlobBrushColor}
-                dm={dm}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    <ToolBtn
+      dm={!!darkMode}
+      onClick={() => setActiveTool(isActive ? 'select' : 'blobBrush')}
+      active={isActive}
+      title="Blob Brush (B)"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18.37 2.63a2.12 2.12 0 013 3L14 13l-4 1 1-4z" />
+        <path d="M9 14c-2.5 2-4.5 4-4.5 6a2.5 2.5 0 005 0c0-2-1-3.5-2-5" />
+      </svg>
+      <span>Blob</span>
+    </ToolBtn>
   )
 }
 
@@ -1546,7 +2279,7 @@ const CANVAS_PRESETS = [
   { id: 'fbcover',label: 'Cover',  wPx: 1640, hPx: 624,  unit: 'px', dpi: 72,  desc: 'Facebook Cover',  sizeHint: '1640×624' },
 ]
 
-function CanvasSizePicker({ canvasState }) {
+function CanvasSizePicker({ canvasState, bloodRain }) {
   const { canvasW, canvasH, setCanvasW, setCanvasH, canvasUnit: unit, setCanvasUnit: setUnit, canvasDpi: dpi, setCanvasDpi: setDpi, darkMode } = canvasState
   const dm = !!darkMode
   const [open, setOpen] = useState(false)
@@ -1598,7 +2331,7 @@ function CanvasSizePicker({ canvasState }) {
     <div className="relative" ref={panelRef}>
       <button
         onClick={() => setOpen(v => !v)}
-        className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors ${
+        className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors ${
           open
             ? (dm ? 'bg-gray-600 text-white' : 'bg-gray-200 text-gray-800')
             : (dm ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100')
@@ -1793,26 +2526,24 @@ function CanvasSizePicker({ canvasState }) {
         <div
           className="size-drop-metal absolute top-full left-0 mt-1 rounded-lg shadow-xl z-50 w-72"
           style={{
-            background: dm
-              ? 'linear-gradient(180deg, #1a0a0a 0%, #0d0d1a 15%, #111827 100%)'
-              : 'linear-gradient(180deg, #2a0a0a 0%, #1a1a2e 15%, #16213e 100%)',
-            border: '1px solid rgba(180,30,30,0.5)',
-            boxShadow: '0 0 20px rgba(180,0,0,0.3), 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,100,100,0.15)',
+            background: dm ? '#1f2937' : '#ffffff',
+            border: dm ? '1px solid rgba(255,255,255,0.12)' : '1px solid #e2e8f0',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.1)',
             overflow: 'visible',
           }}
         >
-          <SizeMenuBlood />
+          {bloodRain && <BloodFill />}
           <div className="size-shimmer" />
           <div className="max-h-[80vh] overflow-y-auto overflow-x-hidden rounded-lg">
 
-          <div style={{ borderBottom: '1px solid rgba(180,30,30,0.25)', padding: '12px' }}>
-            <div className="text-[10px] uppercase tracking-[0.15em] font-bold mb-2" style={{ color: '#cc3333', textShadow: '0 0 8px rgba(200,0,0,0.4)' }}>Units &amp; Resolution</div>
+          <div style={{ borderBottom: dm ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e5e7eb', padding: '12px' }}>
+            <div className={`text-[10px] uppercase tracking-[0.15em] font-bold mb-2 ${dm ? 'text-gray-400' : 'text-gray-500'}`}>Units &amp; Resolution</div>
             <div className="flex items-center gap-2 mb-2">
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="flex-1 rounded px-2 py-1 text-xs outline-none"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(180,30,30,0.3)', color: '#e5c4c4' }}
+                className={`flex-1 rounded px-2 py-1 text-xs outline-none ${dm ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-gray-50 border-gray-200 text-gray-700'}`}
+                style={{ border: '1px solid' }}
               >
                 {UNITS.map(u => (
                   <option key={u.id} value={u.id}>{u.label} ({u.abbr})</option>
@@ -1821,8 +2552,8 @@ function CanvasSizePicker({ canvasState }) {
               <select
                 value={dpi}
                 onChange={(e) => setDpi(parseInt(e.target.value))}
-                className="w-[72px] rounded px-1.5 py-1 text-xs outline-none"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(180,30,30,0.3)', color: '#e5c4c4' }}
+                className={`w-[72px] rounded px-1.5 py-1 text-xs outline-none ${dm ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-gray-50 border-gray-200 text-gray-700'}`}
+                style={{ border: '1px solid' }}
               >
                 {DPI_OPTIONS.map(d => (
                   <option key={d} value={d}>{d} DPI</option>
@@ -1830,10 +2561,10 @@ function CanvasSizePicker({ canvasState }) {
               </select>
             </div>
 
-            <div className="text-[10px] uppercase tracking-[0.15em] font-bold mb-1.5" style={{ color: '#cc3333', textShadow: '0 0 8px rgba(200,0,0,0.4)' }}>Custom Size</div>
+            <div className={`text-[10px] uppercase tracking-[0.15em] font-bold mb-1.5 ${dm ? 'text-gray-400' : 'text-gray-500'}`}>Custom Size</div>
             <div className="flex items-center gap-1.5 mb-1.5">
               <div className="flex-1">
-                <label className="text-[9px] block mb-0.5" style={{ color: '#997777' }}>Width</label>
+                <label className={`text-[9px] block mb-0.5 ${dm ? 'text-gray-500' : 'text-gray-400'}`}>Width</label>
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
@@ -1842,15 +2573,15 @@ function CanvasSizePicker({ canvasState }) {
                     onKeyDown={(e) => e.key === 'Enter' && applyCustom()}
                     min={0}
                     step={unit === 'px' ? 1 : 0.1}
-                    className="w-full rounded px-2 py-1 text-xs tabular-nums outline-none"
-                    style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(180,30,30,0.3)', color: '#e5c4c4' }}
+                    className={`w-full rounded px-2 py-1 text-xs tabular-nums outline-none ${dm ? 'bg-gray-700 border-gray-600 text-gray-200 focus:border-blue-400' : 'bg-gray-50 border-gray-200 text-gray-700 focus:border-blue-400'}`}
+                    style={{ border: '1px solid' }}
                   />
-                  <span className="text-[10px] shrink-0" style={{ color: '#997777' }}>{unitAbbr}</span>
+                  <span className={`text-[10px] shrink-0 ${dm ? 'text-gray-500' : 'text-gray-400'}`}>{unitAbbr}</span>
                 </div>
               </div>
-              <div className="mt-3.5" style={{ color: '#663333' }}>×</div>
+              <div className={`mt-3.5 ${dm ? 'text-gray-600' : 'text-gray-300'}`}>×</div>
               <div className="flex-1">
-                <label className="text-[9px] block mb-0.5" style={{ color: '#997777' }}>Height</label>
+                <label className={`text-[9px] block mb-0.5 ${dm ? 'text-gray-500' : 'text-gray-400'}`}>Height</label>
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
@@ -1859,33 +2590,26 @@ function CanvasSizePicker({ canvasState }) {
                     onKeyDown={(e) => e.key === 'Enter' && applyCustom()}
                     min={0}
                     step={unit === 'px' ? 1 : 0.1}
-                    className="w-full rounded px-2 py-1 text-xs tabular-nums outline-none"
-                    style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(180,30,30,0.3)', color: '#e5c4c4' }}
+                    className={`w-full rounded px-2 py-1 text-xs tabular-nums outline-none ${dm ? 'bg-gray-700 border-gray-600 text-gray-200 focus:border-blue-400' : 'bg-gray-50 border-gray-200 text-gray-700 focus:border-blue-400'}`}
+                    style={{ border: '1px solid' }}
                   />
-                  <span className="text-[10px] shrink-0" style={{ color: '#997777' }}>{unitAbbr}</span>
+                  <span className={`text-[10px] shrink-0 ${dm ? 'text-gray-500' : 'text-gray-400'}`}>{unitAbbr}</span>
                 </div>
               </div>
             </div>
             <button
               onClick={applyCustom}
-              className="w-full py-1.5 rounded text-xs font-black uppercase tracking-[0.15em] transition-all hover:scale-[1.02] relative overflow-hidden"
-              style={{
-                background: 'linear-gradient(180deg, #181440 0%, #7888c8 48%, #ffffff 50%, #2a1050 52%, #8848c8 100%)',
-                color: '#fff',
-                border: '1px solid rgba(192,192,208,0.6)',
-                boxShadow: '0 0 12px rgba(120,80,210,0.5), inset 0 1px 1px rgba(255,255,255,0.5), inset 0 -1px 3px rgba(0,0,0,0.4)',
-                textShadow: '1px 1px 3px rgba(0,0,0,0.8)',
-              }}
+              className={`w-full py-1.5 rounded text-xs font-bold transition-all hover:scale-[1.02] ${dm ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
             >
               Apply Size
             </button>
-            <div className="text-[9px] mt-1 text-center" style={{ color: '#775555' }}>
+            <div className={`text-[9px] mt-1 text-center ${dm ? 'text-gray-500' : 'text-gray-400'}`}>
               {Math.round(unitToPx(parseFloat(customW) || 0, unit, dpi))} × {Math.round(unitToPx(parseFloat(customH) || 0, unit, dpi))} px
             </div>
           </div>
 
           <div className="py-1">
-            <div className="px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] font-bold" style={{ color: '#cc3333', textShadow: '0 0 8px rgba(200,0,0,0.4)' }}>Presets</div>
+            <div className={`px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] font-bold ${dm ? 'text-gray-400' : 'text-gray-500'}`}>Presets</div>
             {CANVAS_PRESETS.map(preset => {
               const isActive = preset.wPx === canvasW && preset.hPx === canvasH
               const aspect = Math.min(preset.wPx, preset.hPx) / Math.max(preset.wPx, preset.hPx)
@@ -1898,30 +2622,28 @@ function CanvasSizePicker({ canvasState }) {
                 <button
                   key={preset.id}
                   onClick={() => applyPreset(preset)}
-                  className="w-full flex items-center gap-2.5 px-3 py-1.5 text-sm transition-colors"
-                  style={{
-                    color: isActive ? '#ff6666' : '#c4a0a0',
-                    background: isActive ? 'rgba(180,30,30,0.15)' : 'transparent',
-                  }}
-                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(180,30,30,0.1)' }}
-                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-sm transition-colors ${
+                    isActive
+                      ? (dm ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-50 text-blue-600')
+                      : (dm ? 'text-gray-300 hover:bg-gray-700/50' : 'text-gray-700 hover:bg-gray-50')
+                  }`}
                 >
                   <div className="w-7 h-7 flex items-center justify-center shrink-0">
                     <div
                       style={{
                         width: thumbW, height: thumbH,
-                        border: isActive ? '2px solid #cc3333' : '2px solid #553333',
+                        border: isActive ? (dm ? '2px solid #60a5fa' : '2px solid #3b82f6') : (dm ? '2px solid #4b5563' : '2px solid #d1d5db'),
                         borderRadius: 2,
-                        background: isActive ? 'rgba(180,30,30,0.3)' : 'rgba(255,255,255,0.05)',
+                        background: isActive ? (dm ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.1)') : (dm ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'),
                       }}
                     />
                   </div>
                   <div className="flex-1 text-left">
                     <div className="text-xs font-medium">{preset.label}</div>
-                    <div className="text-[10px]" style={{ color: '#775555' }}>{preset.desc} · {sizeLabel}</div>
+                    <div className={`text-[10px] ${dm ? 'text-gray-500' : 'text-gray-400'}`}>{preset.desc} · {sizeLabel}</div>
                   </div>
                   {isActive && (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cc3333" strokeWidth="3" className="shrink-0">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={dm ? '#60a5fa' : '#3b82f6'} strokeWidth="3" className="shrink-0">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   )}
@@ -1937,7 +2659,7 @@ function CanvasSizePicker({ canvasState }) {
   )
 }
 
-function PrinterMarksPanel({ canvasState }) {
+function PrinterMarksPanel({ canvasState, bloodRain }) {
   const [open, setOpen] = useState(false)
   const [linkBleed, setLinkBleed] = useState(true)
   const [linkSafe, setLinkSafe] = useState(true)
@@ -2085,6 +2807,7 @@ function PrinterMarksPanel({ canvasState }) {
         <div className={`absolute top-full right-0 mt-1 rounded-lg shadow-xl z-50 w-80 max-h-[80vh] overflow-y-auto ${
           dm ? 'bg-gray-800 border border-gray-600' : 'bg-white border border-gray-200'
         }`}>
+          {bloodRain && <BloodFill />}
           {/* Header */}
           <div className={`px-3 py-2 border-b ${dm ? 'border-gray-700' : 'border-gray-100'}`}>
             <div className={`text-[10px] uppercase tracking-wider font-semibold ${dm ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -2234,7 +2957,7 @@ function PrinterMarksPanel({ canvasState }) {
   )
 }
 
-function AiToolsDropdown({ canvasState, dm }) {
+function AiToolsDropdown({ canvasState, dm, bloodRain }) {
   const [open, setOpen] = useState(false)
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
@@ -2291,9 +3014,11 @@ function AiToolsDropdown({ canvasState, dm }) {
     setError('')
     try {
       const { generateImage } = await import('../utils/aiImageApi')
+      const { saveToGallery } = await import('../utils/imageGallery')
       const data = await generateImage({ prompt: prompt.trim() })
       const url = data.urls?.[0]
       if (url) {
+        saveToGallery({ url, prompt: prompt.trim(), source: 'Quick Generate' })
         placeImage(url)
         setPrompt('')
         setOpen(false)
@@ -2312,22 +3037,10 @@ function AiToolsDropdown({ canvasState, dm }) {
     <div ref={ref} className="relative mr-1">
       <button
         onClick={() => setOpen(!open)}
-        className={`${open ? 'scale-105' : ''} flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold transition-all hover:scale-105 shrink-0`}
-        style={{
-          background: open
-            ? 'linear-gradient(135deg, rgba(99,102,241,0.35) 0%, rgba(139,92,246,0.4) 100%)'
-            : dm
-              ? 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.15) 100%)'
-              : 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.12) 100%)',
-          border: dm ? '1px solid rgba(139,92,246,0.5)' : '1px solid rgba(99,102,241,0.35)',
-          color: dm ? '#c4b5fd' : '#7c3aed',
-          boxShadow: open
-            ? '0 0 16px rgba(139,92,246,0.4), inset 0 0 8px rgba(139,92,246,0.15)'
-            : '0 0 6px rgba(139,92,246,0.1)',
-        }}
+        className={`flex items-center gap-1.5 px-2 py-2 rounded-lg text-xs font-bold transition-all hover:scale-105 shrink-0 ${dm ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
         title="AI Image Generate"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill={dm ? '#ffffff' : '#374151'}>
           <path d="M10 2 L11.5 6.5 L16 8 L11.5 9.5 L10 14 L8.5 9.5 L4 8 L8.5 6.5 Z" />
           <path d="M18 10 L19 12.5 L21.5 13.5 L19 14.5 L18 17 L17 14.5 L14.5 13.5 L17 12.5 Z" />
           <path d="M7 14 L7.7 16 L9.5 16.7 L7.7 17.4 L7 19.5 L6.3 17.4 L4.5 16.7 L6.3 16 Z" />
@@ -2335,12 +3048,13 @@ function AiToolsDropdown({ canvasState, dm }) {
       </button>
       {open && (
         <div
-          className="absolute right-0 top-full mt-1 w-80 rounded-lg shadow-2xl z-50 p-3 flex flex-col gap-2"
+          className="absolute right-0 top-full mt-1 w-80 rounded-lg shadow-2xl z-50 p-3 flex flex-col gap-2 overflow-hidden"
           style={{
             background: dm ? '#1a1a2e' : '#ffffff',
             border: dm ? '1px solid rgba(100,160,255,0.3)' : '1px solid #e2e8f0',
           }}
         >
+          {bloodRain && <BloodFill />}
           <div className="text-xs font-bold mb-1" style={{ color: dm ? '#8bb8ff' : '#2563eb' }}>
             ⚡ Quick Image Generate
           </div>
@@ -2388,6 +3102,8 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
     activeTool, setActiveTool,
     autoplay, setAutoplay,
     darkMode,
+    bloodRain, setBloodRain,
+    laserSmoke, setLaserSmoke,
   } = canvasState
 
   const toolbarRef = useRef(null)
@@ -2397,9 +3113,9 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
   const [logoDims, setLogoDims] = useState({ w: 0, h: 0 })
   const [collapse, setCollapse] = useState(0)
   const [musicPlaying, setMusicPlaying] = useState(false)
-  const [bloodRain, setBloodRain] = useState(false)
   const [nukeActive, setNukeActive] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [logoutText, setLogoutText] = useState(() => pickRandom(LOGOUT_TEXTS))
   const musicRef = useRef(null)
   const bloodAudioRef = useRef(null)
 
@@ -2456,8 +3172,8 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
       container.innerHTML = ''
       container.appendChild(div)
       bloodAudioRef.current = new window.YT.Player(div, {
-        videoId: 'CkaE237oiwE',
-        playerVars: { autoplay: 1, loop: 1, playlist: 'CkaE237oiwE' },
+        videoId: 'z8ZqFlw6hYg',
+        playerVars: { autoplay: 1, loop: 1, playlist: 'z8ZqFlw6hYg' },
         events: {
           onReady: (e) => { e.target.setVolume(60); e.target.playVideo() },
         },
@@ -2491,7 +3207,80 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
     setNukeActive(true)
   }, [nukeActive])
 
-  const onNukeComplete = useCallback(async () => {
+  const CRATER_STORAGE_KEY = 'lazerclaw_crater_pool'
+  const CRATER_SEEN_KEY = 'lazerclaw_crater_seen'
+
+  function getCraterPool() {
+    try { return JSON.parse(localStorage.getItem(CRATER_STORAGE_KEY) || '[]') } catch { return [] }
+  }
+  function getSeenCraters() {
+    try { return JSON.parse(localStorage.getItem(CRATER_SEEN_KEY) || '[]') } catch { return [] }
+  }
+  function saveCraterToPool(url) {
+    const pool = getCraterPool()
+    if (!pool.includes(url)) {
+      pool.push(url)
+      localStorage.setItem(CRATER_STORAGE_KEY, JSON.stringify(pool))
+    }
+  }
+  function markCraterSeen(url) {
+    const seen = getSeenCraters()
+    if (!seen.includes(url)) {
+      seen.push(url)
+      localStorage.setItem(CRATER_SEEN_KEY, JSON.stringify(seen))
+    }
+  }
+  function pickCraterFromPool() {
+    const pool = getCraterPool()
+    if (pool.length === 0) return null
+    const seen = getSeenCraters()
+    const unseen = pool.filter(u => !seen.includes(u))
+    const candidates = unseen.length > 0 ? unseen : pool
+    return candidates[Math.floor(Math.random() * candidates.length)]
+  }
+
+  async function generateCraterInBackground() {
+    try {
+      const { generateImage } = await import('../utils/aiImageApi')
+      const data = await generateImage({
+        prompt: 'Aerial top-down view of a massive nuclear bomb crater in scorched earth, glowing embers and charred ground radiating outward from the impact center, smoke wisps rising, devastation, photorealistic',
+        aspectRatio: canvasState.canvasW > canvasState.canvasH ? '16:9' : canvasState.canvasW < canvasState.canvasH ? '9:16' : '1:1',
+        addMetal: false,
+      })
+      const url = data.urls?.[0]
+      if (url) saveCraterToPool(url)
+      return url
+    } catch (err) {
+      console.error('Crater generation failed:', err)
+      return null
+    }
+  }
+
+  async function placeCraterOnCanvas(url) {
+    const canvas = canvasRef.current
+    if (!url || !canvas) return
+    const { FabricImage } = await import('fabric')
+    const { v4: uuidv4 } = await import('uuid')
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      const fImg = new FabricImage(img, { _dtoolId: uuidv4() })
+      const scale = Math.max(canvasState.canvasW / fImg.width, canvasState.canvasH / fImg.height)
+      fImg.set({
+        scaleX: scale, scaleY: scale,
+        left: (canvasState.canvasW - fImg.width * scale) / 2,
+        top: (canvasState.canvasH - fImg.height * scale) / 2,
+      })
+      canvas.add(fImg)
+      canvas.setActiveObject(fImg)
+      canvas.renderAll()
+      refreshObjects()
+    }
+    img.onerror = () => console.error('Crater image failed to load')
+    img.src = url
+  }
+
+  const onFlashPeak = useCallback(async () => {
     const canvas = canvasRef.current
     if (canvas) {
       saveUndoState()
@@ -2501,55 +3290,44 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
       refreshObjects()
     }
 
-    try {
-      const { generateImage } = await import('../utils/aiImageApi')
-      const data = await generateImage({
-        prompt: 'Aerial top-down view of a massive nuclear bomb crater in scorched earth, glowing embers and charred ground radiating outward from the impact center, smoke wisps rising, devastation, photorealistic',
-        aspectRatio: canvasState.canvasW > canvasState.canvasH ? '16:9' : canvasState.canvasW < canvasState.canvasH ? '9:16' : '1:1',
-        addMetal: false,
-      })
-      const url = data.urls?.[0]
-      if (url && canvas) {
-        const { FabricImage } = await import('fabric')
-        const { v4: uuidv4 } = await import('uuid')
-        const img = new Image()
-        img.crossOrigin = 'anonymous'
-        img.onload = () => {
-          const fImg = new FabricImage(img, { _dtoolId: uuidv4() })
-          const scale = Math.max(canvasState.canvasW / fImg.width, canvasState.canvasH / fImg.height)
-          fImg.set({
-            scaleX: scale, scaleY: scale,
-            left: (canvasState.canvasW - fImg.width * scale) / 2,
-            top: (canvasState.canvasH - fImg.height * scale) / 2,
-          })
-          canvas.add(fImg)
-          canvas.setActiveObject(fImg)
-          canvas.renderAll()
-          refreshObjects()
-        }
-        img.onerror = () => console.error('Crater image failed to load')
-        img.src = url
-      }
-    } catch (err) {
-      console.error('Crater generation failed:', err)
+    // Pick an existing crater to show immediately (prefer unseen)
+    const poolPick = pickCraterFromPool()
+    if (poolPick) {
+      markCraterSeen(poolPick)
+      placeCraterOnCanvas(poolPick)
     }
-    setNukeActive(false)
+
+    // Always generate a new one in the background
+    const newUrl = await generateCraterInBackground()
+    // If we had no pool pick, place the freshly generated one
+    if (!poolPick && newUrl) {
+      markCraterSeen(newUrl)
+      placeCraterOnCanvas(newUrl)
+    }
   }, [canvasRef, saveUndoState, refreshObjects, canvasState])
 
-  // Condense earlier so nav never overflows — aggressive breakpoints prevent overlap
+  const onNukeComplete = useCallback(() => {
+    setNukeActive(false)
+  }, [])
+
+  // Dynamically increase collapse level until toolbar content fits without overflow
   useEffect(() => {
     const el = toolbarRef.current
     if (!el) return
-    const ro = new ResizeObserver(([e]) => {
-      const w = e.contentRect.width
-      if (w >= 1280) setCollapse(0)
-      else if (w >= 1050) setCollapse(1)
-      else if (w >= 850) setCollapse(2)
-      else if (w >= 650) setCollapse(3)
-      else setCollapse(4)
-    })
+    let raf
+    const check = () => {
+      raf = requestAnimationFrame(() => {
+        const w = el.offsetWidth
+        if (w >= 1520) setCollapse(0)
+        else if (w >= 1280) setCollapse(1)
+        else if (w >= 1050) setCollapse(2)
+        else if (w >= 800) setCollapse(3)
+        else setCollapse(4)
+      })
+    }
+    const ro = new ResizeObserver(check)
     ro.observe(el)
-    return () => ro.disconnect()
+    return () => { ro.disconnect(); cancelAnimationFrame(raf) }
   }, [])
 
   // Track logo dimensions for lightning overlay
@@ -2752,7 +3530,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
           <ToolBtn dm={dm} onClick={pasteFromClipboard} title="Paste (Ctrl+V)">{ic.paste}<span>Paste</span></ToolBtn>
           <ToolBtn dm={dm} onClick={duplicateSelected} disabled={!hasSelection} title="Duplicate (Ctrl+D)">{ic.dup}<span>Duplicate</span></ToolBtn>
           <Div />
-          <ToolDropdown label="Arrange" icon={ic.arrange} dm={dm}>
+          <ToolDropdown label="Arrange" icon={ic.arrange} dm={dm} bloodRain={bloodRain}>
             <DropItem icon={ic.fwd} label="Bring Forward" onClick={bringForward} disabled={!hasSelection} dm={dm} />
             <DropItem icon={ic.bwd} label="Send Backward" onClick={sendBackward} disabled={!hasSelection} dm={dm} />
             <DropSep dm={dm} />
@@ -2760,18 +3538,17 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
             <DropItem icon={ic.ungrp} label="Ungroup" onClick={ungroupSelected} disabled={!isGroup} dm={dm} />
             <DropItem icon={ic.mask} label="Mask" onClick={canvasState.createMask} disabled={!canMask} dm={dm} />
           </ToolDropdown>
-          <AlignPanel canvasState={canvasState} />
-          <TilePanel canvasState={canvasState} />
+          <AlignPanel canvasState={canvasState} bloodRain={bloodRain} />
+          <TilePanel canvasState={canvasState} bloodRain={bloodRain} />
           <Div />
           <ToolBtn dm={dm} onClick={() => setActiveTool('select')} active={activeTool === 'select'} title="Select Tool (V)">{ic.select}<span>Select</span></ToolBtn>
           <BlobBrushSettings canvasState={canvasState} />
           <PenToolSettings canvasState={canvasState} />
           <Div />
           <ToolBtn dm={dm} onClick={handleAddText} title="Add Text Box">{ic.text}<span>Text</span></ToolBtn>
-          <ToolBtn dm={dm} onClick={deleteSelected} disabled={!hasSelection} title="Delete (Del)">{ic.del}<span>Delete</span></ToolBtn>
           <Div />
-          <CanvasSizePicker canvasState={canvasState} />
-          <PrinterMarksPanel canvasState={canvasState} />
+          <CanvasSizePicker canvasState={canvasState} bloodRain={bloodRain} />
+          <PrinterMarksPanel canvasState={canvasState} bloodRain={bloodRain} />
         </>
       )}
 
@@ -2779,12 +3556,12 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
       {collapse === 1 && (
         <>
           <Div />
-          <ToolDropdown label="Edit" icon={ic.edit} dm={dm}>
+          <ToolDropdown label="Edit" icon={ic.edit} dm={dm} bloodRain={bloodRain}>
             <DropItem icon={ic.copy} label="Copy" onClick={copySelected} disabled={!hasSelection} dm={dm} />
             <DropItem icon={ic.paste} label="Paste" onClick={pasteFromClipboard} dm={dm} />
             <DropItem icon={ic.dup} label="Duplicate" onClick={duplicateSelected} disabled={!hasSelection} dm={dm} />
           </ToolDropdown>
-          <ToolDropdown label="Arrange" icon={ic.arrange} dm={dm}>
+          <ToolDropdown label="Arrange" icon={ic.arrange} dm={dm} bloodRain={bloodRain}>
             <DropItem icon={ic.fwd} label="Bring Forward" onClick={bringForward} disabled={!hasSelection} dm={dm} />
             <DropItem icon={ic.bwd} label="Send Backward" onClick={sendBackward} disabled={!hasSelection} dm={dm} />
             <DropSep dm={dm} />
@@ -2792,17 +3569,16 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
             <DropItem icon={ic.ungrp} label="Ungroup" onClick={ungroupSelected} disabled={!isGroup} dm={dm} />
             <DropItem icon={ic.mask} label="Mask" onClick={canvasState.createMask} disabled={!canMask} dm={dm} />
           </ToolDropdown>
-          <AlignPanel canvasState={canvasState} />
-          <TilePanel canvasState={canvasState} />
+          <AlignPanel canvasState={canvasState} bloodRain={bloodRain} />
+          <TilePanel canvasState={canvasState} bloodRain={bloodRain} />
           <Div />
           <ToolBtn dm={dm} onClick={() => setActiveTool('select')} active={activeTool === 'select'} title="Select Tool (V)">{ic.select}<span>Select</span></ToolBtn>
           <BlobBrushSettings canvasState={canvasState} />
           <PenToolSettings canvasState={canvasState} />
           <Div />
           <ToolBtn dm={dm} onClick={handleAddText} title="Add Text Box">{ic.text}<span>Text</span></ToolBtn>
-          <ToolBtn dm={dm} onClick={deleteSelected} disabled={!hasSelection} title="Delete (Del)">{ic.del}<span>Delete</span></ToolBtn>
           <Div />
-          <CanvasSizePicker canvasState={canvasState} />
+          <CanvasSizePicker canvasState={canvasState} bloodRain={bloodRain} />
         </>
       )}
 
@@ -2810,7 +3586,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
       {collapse === 2 && (
         <>
           <Div />
-          <ToolDropdown label="Edit" icon={ic.edit} dm={dm}>
+          <ToolDropdown label="Edit" icon={ic.edit} dm={dm} bloodRain={bloodRain}>
             <DropItem icon={ic.copy} label="Copy" onClick={copySelected} disabled={!hasSelection} dm={dm} />
             <DropItem icon={ic.paste} label="Paste" onClick={pasteFromClipboard} dm={dm} />
             <DropItem icon={ic.dup} label="Duplicate" onClick={duplicateSelected} disabled={!hasSelection} dm={dm} />
@@ -2819,7 +3595,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
             <DropItem icon={ic.del} label="Delete" onClick={deleteSelected} disabled={!hasSelection} dm={dm} />
           </ToolDropdown>
 
-          <ToolDropdown label="Arrange" icon={ic.arrange} dm={dm}>
+          <ToolDropdown label="Arrange" icon={ic.arrange} dm={dm} bloodRain={bloodRain}>
             <DropItem icon={ic.fwd} label="Bring Forward" onClick={bringForward} disabled={!hasSelection} dm={dm} />
             <DropItem icon={ic.bwd} label="Send Backward" onClick={sendBackward} disabled={!hasSelection} dm={dm} />
             <DropSep dm={dm} />
@@ -2828,8 +3604,8 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
             <DropItem icon={ic.mask} label="Mask" onClick={canvasState.createMask} disabled={!canMask} dm={dm} />
           </ToolDropdown>
 
-          <AlignPanel canvasState={canvasState} />
-          <TilePanel canvasState={canvasState} />
+          <AlignPanel canvasState={canvasState} bloodRain={bloodRain} />
+          <TilePanel canvasState={canvasState} bloodRain={bloodRain} />
 
           <Div />
           <ToolBtn dm={dm} onClick={() => setActiveTool('select')} active={activeTool === 'select'} title="Select Tool (V)">{ic.select}<span>Select</span></ToolBtn>
@@ -2837,7 +3613,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
           <PenToolSettings canvasState={canvasState} />
 
           <Div />
-          <CanvasSizePicker canvasState={canvasState} />
+          <CanvasSizePicker canvasState={canvasState} bloodRain={bloodRain} />
         </>
       )}
 
@@ -2850,7 +3626,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
           <PenToolSettings canvasState={canvasState} />
 
           <Div />
-          <ToolDropdown label="More" icon={ic.more} dm={dm}>
+          <ToolDropdown label="More" icon={ic.more} dm={dm} bloodRain={bloodRain}>
             <DropLabel dm={dm}>Edit</DropLabel>
             <DropItem icon={ic.copy} label="Copy" onClick={copySelected} disabled={!hasSelection} dm={dm} />
             <DropItem icon={ic.paste} label="Paste" onClick={pasteFromClipboard} dm={dm} />
@@ -2865,7 +3641,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
             <DropItem icon={ic.ungrp} label="Ungroup" onClick={ungroupSelected} disabled={!isGroup} dm={dm} />
             <DropItem icon={ic.mask} label="Mask" onClick={canvasState.createMask} disabled={!canMask} dm={dm} />
           </ToolDropdown>
-          <CanvasSizePicker canvasState={canvasState} />
+          <CanvasSizePicker canvasState={canvasState} bloodRain={bloodRain} />
         </>
       )}
 
@@ -2873,7 +3649,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
       {collapse >= 4 && (
         <>
           <Div />
-          <ToolDropdown label="Tools" icon={ic.more} dm={dm} iconOnly>
+          <ToolDropdown label="Tools" icon={ic.more} dm={dm} iconOnly bloodRain={bloodRain}>
             <DropLabel dm={dm}>Tools</DropLabel>
             <DropItem icon={ic.select} label="Select" onClick={() => setActiveTool('select')} dm={dm} />
             <DropItem icon={ic.text} label="Add Text" onClick={handleAddText} dm={dm} />
@@ -2896,7 +3672,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
 
       {/* AI Image Generate */}
       {collapse < 4 && <Div />}
-      <AiToolsDropdown canvasState={canvasState} dm={dm} />
+      <AiToolsDropdown canvasState={canvasState} dm={dm} bloodRain={bloodRain} />
 
       {/* Music / Theme Song button */}
       <button
@@ -2904,7 +3680,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
         className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors shrink-0 ${dm ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
         title={musicPlaying ? 'Pause Theme Song' : 'Play Theme Song'}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill={musicPlaying ? '#f59e0b' : (dm ? 'rgba(200,170,100,0.5)' : 'rgba(150,120,40,0.45)')}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill={musicPlaying ? '#f59e0b' : (dm ? '#ffffff' : '#374151')}>
           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
         </svg>
       </button>
@@ -2912,21 +3688,8 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
       {/* Blood Rain toggle */}
       <button
         onClick={() => setBloodRain(v => !v)}
-        className={`${collapse >= 4 ? 'w-8 h-8' : 'w-10 h-10'} flex items-center justify-center rounded-xl transition-all shrink-0 relative overflow-hidden`}
+        className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors shrink-0 relative overflow-hidden ${dm ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
         title={bloodRain ? 'Stop Blood Rain' : 'Blood Rain'}
-        style={{
-          background: bloodRain
-            ? 'linear-gradient(135deg, rgba(180,20,20,0.4) 0%, rgba(120,0,0,0.45) 100%)'
-            : dm
-              ? 'linear-gradient(135deg, rgba(120,20,20,0.15) 0%, rgba(80,10,10,0.18) 100%)'
-              : 'linear-gradient(135deg, rgba(180,20,20,0.08) 0%, rgba(120,0,0,0.12) 100%)',
-          border: dm ? '1px solid rgba(220,40,40,0.5)' : '1px solid rgba(180,20,20,0.3)',
-          boxShadow: bloodRain
-            ? '0 0 18px rgba(220,40,40,0.5), 0 0 36px rgba(140,0,0,0.3), inset 0 0 10px rgba(220,40,40,0.25)'
-            : dm
-              ? '0 0 8px rgba(220,40,40,0.15), inset 0 0 4px rgba(140,0,0,0.08)'
-              : '0 0 4px rgba(180,20,20,0.1)',
-        }}
       >
         <svg width={collapse >= 4 ? 16 : 20} height={collapse >= 4 ? 16 : 20} viewBox="0 0 24 24" fill="none">
           <path d="M12 2C12 2 6 10 6 15a6 6 0 0012 0c0-5-6-13-6-13z" fill={bloodRain ? '#dc2626' : (dm ? 'rgba(220,60,60,0.7)' : 'rgba(180,30,30,0.55)')} />
@@ -2942,6 +3705,21 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
 
       {bloodRain && <BloodRainOverlay />}
 
+      {/* Laser & Smoke Machine */}
+      <button
+        onClick={() => setLaserSmoke(v => !v)}
+        className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors shrink-0 ${dm ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
+        title={laserSmoke ? 'Stop Laser Show' : 'Laser & Smoke Machine'}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={laserSmoke ? '#00ffcc' : (dm ? '#ffffff' : '#374151')} strokeWidth="2" strokeLinecap="round">
+          <line x1="12" y1="2" x2="4" y2="18" />
+          <line x1="12" y1="2" x2="20" y2="18" />
+          <line x1="12" y1="2" x2="12" y2="20" />
+          <ellipse cx="12" cy="20" rx="10" ry="3" fill={laserSmoke ? 'rgba(0,255,200,0.15)' : 'none'} stroke={laserSmoke ? '#00ffcc' : (dm ? '#ffffff' : '#374151')} strokeWidth="1.5" />
+        </svg>
+      </button>
+      <LaserSmokeMachine active={laserSmoke} />
+
       {/* Nuclear Explosion */}
       <button
         onClick={triggerNuke}
@@ -2949,12 +3727,16 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
         className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors shrink-0 ${nukeActive ? 'animate-pulse' : ''} ${dm ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
         title="Nuclear Explosion"
       >
-        <svg width="20" height="20" viewBox="0 -960 960 960" fill={nukeActive ? '#f59e0b' : (dm ? 'rgba(220,180,60,0.5)' : 'rgba(180,140,30,0.45)')}>
-          <path d="M216-164q-29-17-37-48.5t10-60.5l104-179q-52-34-82.5-90.5T180-660q0-22 3-43.5t10-41.5q10-31 38.5-42.5T288-788l210 121 210-121q28-12 56.5-.5T803-745q7 20 10 41.5t3 43.5q0 61-30.5 117.5T703-452l104 179q17 29 9 60.5T779-164q-17 10-36.5 6.5T710-174L480-306 250-174q-13 10-32.5 13.5T216-164Zm264-256q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35Z" />
+        <svg width="20" height="20" viewBox="0 0 225 225" fill={nukeActive ? '#f59e0b' : (dm ? '#ffffff' : '#374151')}>
+          <path d="M121,0c1,.6,2.9.6,5,.9,51.7,6.2,92.4,47.3,98.1,99s.4,3.4.9,4.1v17c-.6,1-.6,2.9-.9,5-6.2,51.3-46.7,91.8-98.1,98.1-2.1.3-4.1.3-5,.9h-17c-1-.6-3-.6-5-.9C47.6,217.8,7.1,177.5.9,126c-.3-2.1-.3-4.1-.9-5v-17C5.3,48,48,5.4,104,0h17ZM216.4,112.5c0-57.4-46.5-103.9-103.9-103.9S8.6,55.1,8.6,112.5s46.5,103.9,103.9,103.9,103.9-46.5,103.9-103.9Z"/>
+          <path d="M139.1,108.2c-1.5-7-5-13.1-10.5-17.6s-1.9-3.4-.9-5.1l28.4-49.1c1.2-2,3.8-2.6,5.7-1.4,24.8,16.6,40.2,43.4,41.8,72.6s-1.8,4.2-4.1,4.2l-56.6-.5c-1.9,0-3.5-1.3-3.9-3.1Z"/>
+          <path d="M154.8,193.8c-26.6,13-56.9,13.3-83.7,0-2.1-1-2.9-3.6-1.7-5.7l28.7-49c1-1.7,3.1-2.4,5-1.7,6.5,2.6,13.3,2.3,20.1-.2,1.8-.7,3.9,0,4.9,1.8l28.4,49.2c1.2,2,.4,4.6-1.7,5.6Z"/>
+          <path d="M82.5,112.2H25.6c-2.3,0-4.2-1.9-4-4.2,1.8-29.4,16.9-56,41.9-72.5s4.6-.6,5.7,1.4l28.1,49.5c1,1.7.5,4-1.1,5.2-5.4,4.2-8.5,9.9-9.8,17.4s-2,3.3-4,3.3Z"/>
+          <circle cx="112.6" cy="113.6" r="17.6"/>
         </svg>
       </button>
 
-      {nukeActive && <NukeExplosion onComplete={onNukeComplete} />}
+      {nukeActive && <NukeExplosion onComplete={onNukeComplete} onFlashPeak={onFlashPeak} />}
 
       {/* Dark/Light mode toggle */}
       <button
@@ -2991,8 +3773,8 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
 
       {/* Logout button - outlined secondary CTA with chrome effect */}
       <button
-        onClick={() => setShowLogoutConfirm(true)}
-        className={`${collapse >= 4 ? 'px-2 w-9' : collapse >= 1 ? 'px-2.5' : 'px-5'} py-2 rounded text-sm font-bold transition-all shrink-0 flex items-center justify-center gap-2 ${collapse >= 1 ? 'ml-1' : 'ml-3'} relative overflow-hidden hover:scale-105`}
+        onClick={() => { setLogoutText(pickRandom(LOGOUT_TEXTS)); setShowLogoutConfirm(true) }}
+        className={`${collapse >= 4 ? 'px-2 w-9' : collapse >= 1 ? 'px-2.5' : 'px-5'} py-2 rounded-lg text-sm font-bold transition-all shrink-0 flex items-center justify-center gap-2 ${collapse >= 1 ? 'ml-1' : 'ml-3'} relative overflow-hidden hover:scale-105`}
         style={{
           background: dm
             ? 'linear-gradient(180deg, rgba(60,65,80,0.95) 0%, rgba(40,45,60,0.98) 100%)'
@@ -3082,15 +3864,15 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
               <span className="text-sm font-bold" style={{ color: dm ? '#e2e8f0' : '#1e293b' }}>
-                Heads up, shredder!
+                {logoutText.title}
               </span>
             </div>
             <div className="px-5 py-4">
               <p className="text-sm leading-relaxed" style={{ color: dm ? '#94a3b8' : '#475569' }}>
-                Your current session will be cleared and any unsaved designs will vanish into the void.
+                {logoutText.body}
               </p>
               <p className="text-xs mt-3 font-medium" style={{ color: dm ? '#f59e0b' : '#d97706' }}>
-                Download anything you wanna keep before you bail.
+                {logoutText.warning}
               </p>
             </div>
             <div
@@ -3109,7 +3891,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
                   border: dm ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
                 }}
               >
-                Cancel
+                {logoutText.cancel}
               </button>
               <button
                 onClick={() => {
@@ -3127,7 +3909,7 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
                   boxShadow: '0 2px 8px rgba(220,38,38,0.3)',
                 }}
               >
-                Peace Out
+                {logoutText.confirm}
               </button>
             </div>
           </div>

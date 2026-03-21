@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { Shadow, Path, Gradient, Pattern, Group, FabricImage, cache } from 'fabric'
 import { v4 as uuidv4 } from 'uuid'
 import { buildPatternFromImage } from './ColorPicker'
+import BloodFill from './BloodFill'
 import { AVAILABLE_FONTS } from '../elements/fonts'
 import ColorPicker from './ColorPicker'
 import { flattenFabricPath } from '../utils/contour'
@@ -63,7 +64,7 @@ function commonVal(objects, getter) {
 }
 
 export default function RightSidebar({ canvasState, onClose }) {
-  const { selectedObject, canvasRef, saveUndoState, refreshObjects, canvasW, canvasH } = canvasState
+  const { selectedObject, canvasRef, saveUndoState, refreshObjects, canvasW, canvasH, bloodRain } = canvasState
   const [props, setProps] = useState({})
   const [updateKey, setUpdateKey] = useState(0)
   const gestureUndoSaved = useRef(false)
@@ -899,7 +900,7 @@ export default function RightSidebar({ canvasState, onClose }) {
   if (!selectedObject) {
     const isPenActive = activeTool === 'pen'
     return (
-      <div className={`w-64 border-l flex flex-col shrink-0 ${dm ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+      <div className={`w-64 border-l flex flex-col shrink-0 relative ${dm ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className={`flex items-center justify-between px-3 py-2 border-b shrink-0 ${dm ? 'border-gray-700' : 'border-gray-100'}`}>
           <span className={`text-sm font-semibold ${dm ? 'text-gray-200' : 'text-gray-700'}`}>Properties</span>
           <button onClick={onClose} className={`text-lg leading-none ${dm ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}>&times;</button>
@@ -1018,6 +1019,7 @@ export default function RightSidebar({ canvasState, onClose }) {
             <p className={`text-xs text-center ${dm ? 'text-gray-500' : 'text-gray-400'}`}>Select an object on the canvas to edit its properties</p>
           </div>
         )}
+        {bloodRain && <BloodFill />}
       </div>
     )
   }
@@ -1029,7 +1031,7 @@ export default function RightSidebar({ canvasState, onClose }) {
     : props.someText ? 'Edit Text' : 'Edit Object'
 
   return (
-    <div className={`w-64 border-l flex flex-col shrink-0 ${dm ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+    <div className={`w-64 border-l flex flex-col shrink-0 relative ${dm ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
       <div className={`flex items-center justify-between px-3 py-2 border-b shrink-0 ${dm ? 'border-gray-700' : 'border-gray-100'}`}>
         <span className={`text-sm font-semibold ${dm ? 'text-gray-200' : 'text-gray-700'}`}>{headerLabel}</span>
         <button onClick={onClose} className={`text-lg leading-none ${dm ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}>&times;</button>
@@ -1904,6 +1906,7 @@ export default function RightSidebar({ canvasState, onClose }) {
           </div>
         </Section>
       </div>
+      {bloodRain && <BloodFill />}
     </div>
   )
 }

@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { buildAgentSystemPrompt, serializeCanvasForAgent } from '../utils/agentPrompt'
 import { executeActions, addImageFromUrlToCanvas } from '../utils/agentExecutor'
 import { generateImage as generateImageApi } from '../utils/aiImageApi'
+import { saveToGallery } from '../utils/imageGallery'
+import BloodFill from './BloodFill'
 
 async function callNanaBananaChat(message, history, images) {
   const res = await fetch('/api/nana-banana-chat', {
@@ -532,7 +534,7 @@ function MessageBubble({ message, darkMode, onAddToDesign, onChoiceClick, msgInd
           isUser ? 'text-white rounded-br-md' : 'rounded-bl-md'
         }`}
         style={isUser
-          ? { background: 'linear-gradient(180deg, #181440 0%, #7888c8 48%, #ffffff 50%, #2a1050 52%, #8848c8 100%)', border: '1px solid rgba(192,192,208,0.3)', textShadow: '0 1px 3px rgba(0,0,0,0.7), 0 0 6px rgba(0,0,0,0.3)' }
+          ? { background: 'linear-gradient(180deg, #181440 0%, #7888c8 48%, #ffffff 50%, #2a1050 52%, #8848c8 100%)', border: '1px solid rgba(192,192,208,0.3)', textShadow: '0 2px 6px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.35)' }
           : { background: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(14,165,233,0.08)', color: darkMode ? '#e2e8f0' : '#1e293b' }
         }
       >
@@ -1011,6 +1013,23 @@ function GenieShower({ chatLeft, chatTop, chatWidth }) {
   )
 }
 
+const CLAW_GREETINGS = [
+  "Hey dude! I'm Dr. Claw, the most metal crustacean design assistant in the seven seas. Tell me what you'd like to create and I'll bring it to life, man — with LIGHTNING SPEED! The Claw abides. 🦞⚡",
+  "WHAT'S UP, SHREDDER! Dr. Claw here, ready to crank your designs up to eleven. Drop a request and watch the sparks fly! 🤘🦞",
+  "Yo! The Claw has arrived. I'm part lobster, part AI, all metal. Tell me what to design and I'll make it absolutely brutal. ⚡🔥",
+  "Greetings, mortal! Dr. Claw at your service — I've crawled from the deepest ocean trench to help you create legendary designs. What are we building? 🦞🎸",
+  "Welcome to the THUNDER DOME of design! I'm Dr. Claw, your crustacean creative partner. Let's make something that SHREDS. 🤘⚡",
+  "*cracks claws* Another brave soul enters the lair! I'm Dr. Claw — designer, lobster, metal enthusiast. What masterpiece are we unleashing today? 🦞🔥",
+  "ROCK ON! Dr. Claw reporting for duty. I eat boring designs for breakfast and spit out pure metal glory. What's the mission? ⚡🦞",
+  "The Claw sees you! Welcome, fellow creature of chaos. I'm here to turn your wildest design ideas into reality — with MAXIMUM INTENSITY. 🔥🤘",
+  "Hail and well met, design warrior! Dr. Claw, the ocean's most talented AI lobster, stands ready. What epic creation calls to you? 🦞⚡",
+  "BOOM! *lightning strike* Dr. Claw has entered the arena! I'm locked, loaded, and ready to design something absolutely face-melting. Hit me! 🎸🦞",
+  "Rise and grind, legend! The Claw is AWAKE and craving creativity. Tell me your vision and I'll bring the thunder. ⚡🤘",
+  "Another day, another chance to create something LEGENDARY. Dr. Claw here — lobster claws typing at the speed of metal. What's the plan? 🦞🔥",
+]
+
+function pickRandomGreeting() { return CLAW_GREETINGS[Math.floor(Math.random() * CLAW_GREETINGS.length)] }
+
 export default function AgentChat({ canvasState }) {
   const [isOpen, setIsOpen] = useState(false)
   const [showLightning, setShowLightning] = useState(false)
@@ -1020,7 +1039,7 @@ export default function AgentChat({ canvasState }) {
   const [wildLightning, setWildLightning] = useState(false)
   const [bloodRain, setBloodRain] = useState(false)
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: "Hey dude! I'm Dr. Claw, the most metal crustacean design assistant in the seven seas. Tell me what you'd like to create and I'll bring it to life, man — with LIGHTNING SPEED! The Claw abides. 🦞⚡" },
+    { role: 'assistant', content: pickRandomGreeting() },
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -1210,6 +1229,7 @@ export default function AgentChat({ canvasState }) {
             action: { prompt: userText.trim() },
             added: false,
           })
+          saveToGallery({ url: dataUrl, prompt: userText.trim(), source: 'Dr. Claw Chat' })
         }
       }
 
@@ -1227,6 +1247,7 @@ export default function AgentChat({ canvasState }) {
               action: { prompt: userText.trim() },
               added: false,
             })
+            saveToGallery({ url: fallbackUrl, prompt: userText.trim(), source: 'Dr. Claw Chat' })
           }
         } catch (fallbackErr) {
           console.warn('Fallback image generation failed:', fallbackErr)
@@ -1291,6 +1312,7 @@ export default function AgentChat({ canvasState }) {
             const url = data.urls?.[0]
             if (url) {
               imagePreviews.push({ id: uuidv4(), url, action, added: false })
+              saveToGallery({ url, prompt: action.prompt || '', source: 'Dr. Claw Agent' })
             }
           } catch (err) {
             console.warn('Image generation failed:', err)
@@ -1410,12 +1432,11 @@ export default function AgentChat({ canvasState }) {
         })
 
         if (generatedImages && generatedImages.length > 0) {
-          const imagePreviews = generatedImages.map(img => ({
-            id: uuidv4(),
-            url: `data:${img.mimeType || 'image/png'};base64,${img.data}`,
-            action: { prompt: choice.subject },
-            added: false,
-          }))
+          const imagePreviews = generatedImages.map(img => {
+            const dataUrl = `data:${img.mimeType || 'image/png'};base64,${img.data}`
+            saveToGallery({ url: dataUrl, prompt: choice.subject, source: 'Dr. Claw Chat' })
+            return { id: uuidv4(), url: dataUrl, action: { prompt: choice.subject }, added: false }
+          })
           setMessages(prev => [...prev, {
             role: 'assistant',
             content: text || `BOOM! Fresh off the amp, dude! Here's your image. Hit "Add to design" to slam it on the canvas!`,
@@ -1852,14 +1873,14 @@ export default function AgentChat({ canvasState }) {
         }
         @keyframes magicalGlowRed {
           0%, 100% {
-            filter: drop-shadow(0 0 15px rgba(220,40,40,0.6))
-                    drop-shadow(0 0 30px rgba(200,20,20,0.4))
-                    drop-shadow(0 0 45px rgba(180,10,10,0.2));
+            filter: drop-shadow(0 0 15px rgba(180,0,0,0.7))
+                    drop-shadow(0 0 30px rgba(140,0,0,0.45))
+                    drop-shadow(0 0 50px rgba(100,0,0,0.25));
           }
           50% {
-            filter: drop-shadow(0 0 25px rgba(240,50,50,0.9))
-                    drop-shadow(0 0 50px rgba(220,30,30,0.6))
-                    drop-shadow(0 0 75px rgba(200,20,20,0.3));
+            filter: drop-shadow(0 0 25px rgba(220,10,10,0.95))
+                    drop-shadow(0 0 50px rgba(180,0,0,0.65))
+                    drop-shadow(0 0 80px rgba(140,0,0,0.35));
           }
         }
         .gem-shimmer-container {
@@ -1916,11 +1937,11 @@ export default function AgentChat({ canvasState }) {
           animation: gemHeartbeat 3s ease-in-out infinite;
         }
         @keyframes gemHeartbeat {
-          0%   { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(220,30,30,0.7)) drop-shadow(0 0 24px rgba(200,20,20,0.5)) drop-shadow(0 0 40px rgba(180,10,10,0.3)) hue-rotate(145deg) saturate(2.2) brightness(1.1); }
-          25%  { transform: scale(1.04); filter: drop-shadow(0 0 16px rgba(240,40,40,0.85)) drop-shadow(0 0 36px rgba(220,20,20,0.6)) drop-shadow(0 0 50px rgba(200,10,10,0.4)) hue-rotate(148deg) saturate(2.5) brightness(1.2); }
-          50%  { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(220,30,30,0.7)) drop-shadow(0 0 24px rgba(200,20,20,0.5)) drop-shadow(0 0 40px rgba(180,10,10,0.3)) hue-rotate(145deg) saturate(2.2) brightness(1.1); }
-          75%  { transform: scale(1.03); filter: drop-shadow(0 0 14px rgba(230,35,35,0.8)) drop-shadow(0 0 30px rgba(210,20,20,0.55)) drop-shadow(0 0 45px rgba(190,10,10,0.35)) hue-rotate(146deg) saturate(2.4) brightness(1.15); }
-          100% { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(220,30,30,0.7)) drop-shadow(0 0 24px rgba(200,20,20,0.5)) drop-shadow(0 0 40px rgba(180,10,10,0.3)) hue-rotate(145deg) saturate(2.2) brightness(1.1); }
+          0%   { transform: scale(1);    filter: drop-shadow(0 0 12px rgba(200,10,10,0.8)) drop-shadow(0 0 28px rgba(180,0,0,0.55)) drop-shadow(0 0 48px rgba(140,0,0,0.3)) sepia(1) saturate(8) hue-rotate(340deg) brightness(1.15); }
+          25%  { transform: scale(1.05); filter: drop-shadow(0 0 20px rgba(255,30,30,0.95)) drop-shadow(0 0 40px rgba(220,0,0,0.7)) drop-shadow(0 0 60px rgba(180,0,0,0.4)) sepia(1) saturate(10) hue-rotate(340deg) brightness(1.35); }
+          50%  { transform: scale(1);    filter: drop-shadow(0 0 12px rgba(200,10,10,0.8)) drop-shadow(0 0 28px rgba(180,0,0,0.55)) drop-shadow(0 0 48px rgba(140,0,0,0.3)) sepia(1) saturate(8) hue-rotate(340deg) brightness(1.15); }
+          75%  { transform: scale(1.04); filter: drop-shadow(0 0 16px rgba(240,20,20,0.9)) drop-shadow(0 0 34px rgba(200,0,0,0.65)) drop-shadow(0 0 54px rgba(160,0,0,0.35)) sepia(1) saturate(9) hue-rotate(340deg) brightness(1.25); }
+          100% { transform: scale(1);    filter: drop-shadow(0 0 12px rgba(200,10,10,0.8)) drop-shadow(0 0 28px rgba(180,0,0,0.55)) drop-shadow(0 0 48px rgba(140,0,0,0.3)) sepia(1) saturate(8) hue-rotate(340deg) brightness(1.15); }
         }
         .agent-fab-btn {
           background: transparent;
@@ -2051,7 +2072,7 @@ export default function AgentChat({ canvasState }) {
                 </button>
                 <button
                   onClick={() => {
-                    setMessages([{ role: 'assistant', content: "Hey dude! I'm Dr. Claw, the most metal crustacean design assistant in the seven seas. Tell me what you'd like to create and I'll bring it to life, man — with LIGHTNING SPEED! The Claw abides. 🦞⚡" }])
+                    setMessages([{ role: 'assistant', content: pickRandomGreeting() }])
                     setReferenceImages([])
                   }}
                   className="w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-white/80 hover:text-white transition-colors"
@@ -2161,6 +2182,7 @@ export default function AgentChat({ canvasState }) {
               </button>
             </form>
           </div>
+          {canvasState.bloodRain && <BloodFill />}
           </div>
         </div>
         </>
@@ -2270,7 +2292,7 @@ export default function AgentChat({ canvasState }) {
                     height: '100%',
                     objectFit: 'contain',
                     filter: isOpen
-                      ? 'drop-shadow(0 0 10px rgba(220,30,30,0.7)) drop-shadow(0 0 24px rgba(200,20,20,0.5)) drop-shadow(0 0 40px rgba(180,10,10,0.3)) hue-rotate(145deg) saturate(2.2) brightness(1.1)'
+                      ? 'drop-shadow(0 0 12px rgba(200,10,10,0.8)) drop-shadow(0 0 28px rgba(180,0,0,0.55)) drop-shadow(0 0 48px rgba(140,0,0,0.3)) sepia(1) saturate(8) hue-rotate(340deg) brightness(1.15)'
                       : 'drop-shadow(0 0 4px rgba(100,160,255,0.15)) drop-shadow(0 0 8px rgba(130,190,255,0.08))',
                     transition: 'filter 0.6s ease',
                   }}

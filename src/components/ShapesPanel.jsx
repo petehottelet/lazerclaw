@@ -2,54 +2,55 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Rect, Circle, Ellipse, Triangle, Polygon, Path, FabricImage, Group, loadSVGFromString } from 'fabric'
 import { v4 as uuidv4 } from 'uuid'
 import { VECTOR_SHAPE_CATEGORIES } from '../elements/vectorShapes'
+import BloodFill from './BloodFill'
 
 // Single filled style for all shapes: one fill color, no stroke
 const SHAPE_FILL = '#C8C4BE'
 const SHAPE_OPTS = { stroke: 'transparent', strokeWidth: 0 }
 
-const SH_STROKE = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinejoin: 'round', strokeLinecap: 'round' }
+const sh = (w = 1.5) => ({ fill: 'none', stroke: 'currentColor', strokeWidth: w, strokeLinejoin: 'round', strokeLinecap: 'round' })
 
 const SHAPES = [
   {
     id: 'rectangle',
     label: 'Rectangle',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><rect x="3" y="6" width="22" height="16" rx="1" {...SH_STROKE} /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><rect x="3" y="6" width="22" height="16" rx="1" {...sh()} /></svg>,
     create: () => new Rect({ width: 120, height: 80, fill: SHAPE_FILL, rx: 0, ry: 0, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
   },
   {
     id: 'square',
     label: 'Square',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><rect x="4" y="4" width="20" height="20" rx="1" {...SH_STROKE} /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><rect x="4" y="4" width="20" height="20" rx="1" {...sh()} /></svg>,
     create: () => new Rect({ width: 100, height: 100, fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
   },
   {
     id: 'rounded_rect',
     label: 'Rounded Rectangle',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><rect x="3" y="6" width="22" height="16" rx="5" {...SH_STROKE} /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><rect x="3" y="6" width="22" height="16" rx="5" {...sh()} /></svg>,
     create: () => new Rect({ width: 120, height: 80, fill: SHAPE_FILL, rx: 12, ry: 12, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
   },
   {
     id: 'circle',
     label: 'Circle',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="10" {...SH_STROKE} /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="10" {...sh()} /></svg>,
     create: () => new Circle({ radius: 50, fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
   },
   {
     id: 'ellipse',
     label: 'Ellipse',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><ellipse cx="14" cy="14" rx="12" ry="8" {...SH_STROKE} /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><ellipse cx="14" cy="14" rx="12" ry="8" {...sh()} /></svg>,
     create: () => new Ellipse({ rx: 60, ry: 40, fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
   },
   {
     id: 'triangle',
     label: 'Triangle',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,4 3,24 25,24" {...SH_STROKE} /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,4 3,24 25,24" {...sh()} /></svg>,
     create: () => new Triangle({ width: 100, height: 90, fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }),
   },
   {
     id: 'diamond',
     label: 'Diamond',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 25,14 14,25 3,14" {...SH_STROKE} /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 25,14 14,25 3,14" {...sh()} /></svg>,
     create: () => new Polygon(
       [{ x: 50, y: 0 }, { x: 100, y: 50 }, { x: 50, y: 100 }, { x: 0, y: 50 }],
       { fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }
@@ -58,7 +59,7 @@ const SHAPES = [
   {
     id: 'pentagon',
     label: 'Pentagon',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 25,10.5 21,23 7,23 3,10.5" {...SH_STROKE} /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 25,10.5 21,23 7,23 3,10.5" {...sh()} /></svg>,
     create: () => {
       const r = 50
       const pts = Array.from({ length: 5 }, (_, i) => {
@@ -71,7 +72,7 @@ const SHAPES = [
   {
     id: 'hexagon',
     label: 'Hexagon',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 24,8.5 24,19.5 14,25 4,19.5 4,8.5" {...SH_STROKE} /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 24,8.5 24,19.5 14,25 4,19.5 4,8.5" {...sh()} /></svg>,
     create: () => {
       const r = 50
       const pts = Array.from({ length: 6 }, (_, i) => {
@@ -84,7 +85,7 @@ const SHAPES = [
   {
     id: 'star',
     label: 'Star',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 17,11 25,11 19,16 21,24 14,20 7,24 9,16 3,11 11,11" {...SH_STROKE} /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,3 17,11 25,11 19,16 21,24 14,20 7,24 9,16 3,11 11,11" {...sh(1.2)} /></svg>,
     create: () => {
       const outer = 50, inner = 22
       const pts = Array.from({ length: 10 }, (_, i) => {
@@ -98,7 +99,7 @@ const SHAPES = [
   {
     id: 'heart',
     label: 'Heart',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><path d="M14 24s-9-5.5-9-12a5 5 0 019-3 5 5 0 019 3c0 6.5-9 12-9 12z" {...SH_STROKE} /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><path d="M14 24s-9-5.5-9-12a5 5 0 019-3 5 5 0 019 3c0 6.5-9 12-9 12z" {...sh()} /></svg>,
     create: () => new Path(
       'M 50 30 C 50 10, 90 0, 90 30 C 90 60, 50 90, 50 90 C 50 90, 10 60, 10 30 C 10 0, 50 10, 50 30 Z',
       { fill: SHAPE_FILL, ...SHAPE_OPTS, _dtoolId: uuidv4() }
@@ -107,7 +108,7 @@ const SHAPES = [
   {
     id: 'arrow_right',
     label: 'Arrow',
-    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="3,10 18,10 18,5 25,14 18,23 18,18 3,18" {...SH_STROKE} /></svg>,
+    icon: <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="3,10 18,10 18,5 25,14 18,23 18,18 3,18" {...sh(1.2)} /></svg>,
     create: () => new Polygon(
       [
         { x: 0, y: 30 }, { x: 70, y: 30 }, { x: 70, y: 10 },
@@ -213,9 +214,10 @@ function SvgThumbnail({ src, dm }) {
         if (!node.closest('defs') && node.tagName !== 'svg') {
           node.setAttribute('fill', 'none')
           node.setAttribute('stroke', color)
-          node.setAttribute('stroke-width', '3')
+          node.setAttribute('stroke-width', '1.5')
           node.setAttribute('stroke-linejoin', 'round')
           node.setAttribute('stroke-linecap', 'round')
+          node.setAttribute('vector-effect', 'non-scaling-stroke')
         }
         node.removeAttribute('class')
         node.removeAttribute('style')
@@ -284,7 +286,7 @@ function VectorShapeGrid({ files, basePath, onAdd, onDragStart, showAllState, on
 
 export default function ShapesPanel({ canvasState }) {
   const dm = !!canvasState.darkMode
-  const { canvasRef, saveUndoState, refreshObjects } = canvasState
+  const { canvasRef, saveUndoState, refreshObjects, bloodRain } = canvasState
   const [sections, setSections] = useState({
     shapes: true,
     vectors: true,
@@ -470,6 +472,7 @@ export default function ShapesPanel({ canvasState }) {
           </div>
         )}
       </div>
+      {bloodRain && <BloodFill />}
     </div>
   )
 }

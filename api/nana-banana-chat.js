@@ -118,7 +118,13 @@ export default async function handler(req, res) {
 
       const parts = [];
       for (const p of turn.parts) {
-        if (p.text) {
+        if (p.thought !== undefined || p.thoughtSignature) {
+          const thoughtPart = {};
+          if (p.text !== undefined) thoughtPart.text = p.text;
+          if (p.thought !== undefined) thoughtPart.thought = p.thought;
+          if (p.thoughtSignature) thoughtPart.thoughtSignature = p.thoughtSignature;
+          parts.push(thoughtPart);
+        } else if (p.text) {
           parts.push({ text: p.text });
         } else if (p.inlineData) {
           parts.push({
@@ -171,7 +177,11 @@ export default async function handler(req, res) {
     const modelParts = [];
 
     for (const part of responseParts) {
-      if (part.text) {
+      if (part.thought) {
+        const thoughtPart = { text: part.text || "", thought: true };
+        if (part.thoughtSignature) thoughtPart.thoughtSignature = part.thoughtSignature;
+        modelParts.push(thoughtPart);
+      } else if (part.text) {
         text += part.text;
         modelParts.push({ text: part.text });
       } else if (part.inlineData) {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Path, Group, loadSVGFromString } from 'fabric'
 import { v4 as uuidv4 } from 'uuid'
+import BloodFill from './BloodFill'
 
 // Google Material Icons categories with curated icon sets
 const MATERIAL_ICON_CATEGORIES = [
@@ -184,34 +185,25 @@ function CategorySection({ category, onAdd, onDragStart, dm, searchTerm }) {
 
 export default function IconsPanel({ canvasState }) {
   const dm = !!canvasState.darkMode
-  const { canvasRef, saveUndoState, refreshObjects } = canvasState
+  const { canvasRef, saveUndoState, refreshObjects, bloodRain } = canvasState
   const [searchTerm, setSearchTerm] = useState('')
   const [fontsLoaded, setFontsLoaded] = useState(false)
 
   useEffect(() => {
-    let interval
-    const check = () => document.fonts.check('24px "Material Symbols Outlined"')
-
-    const startPolling = () => {
-      if (check()) { setFontsLoaded(true); return }
-      interval = setInterval(() => {
-        if (check()) { setFontsLoaded(true); clearInterval(interval) }
-      }, 150)
-    }
+    let cancelled = false
+    const markReady = () => { if (!cancelled) setFontsLoaded(true) }
 
     const existing = document.querySelector('link[href*="Material+Symbols+Outlined"]')
-    if (existing) {
-      startPolling()
-    } else {
+    if (!existing) {
       const link = document.createElement('link')
       link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap'
       link.rel = 'stylesheet'
-      link.onload = () => startPolling()
       document.head.appendChild(link)
     }
 
-    const fallback = setTimeout(() => setFontsLoaded(true), 4000)
-    return () => { clearInterval(interval); clearTimeout(fallback) }
+    document.fonts.ready.then(markReady).catch(markReady)
+    const fallback = setTimeout(markReady, 2500)
+    return () => { cancelled = true; clearTimeout(fallback) }
   }, [])
 
   const addIcon = useCallback(async (iconName) => {
@@ -347,6 +339,7 @@ export default function IconsPanel({ canvasState }) {
           Powered by Google Material Icons
         </a>
       </div>
+      {bloodRain && <BloodFill />}
     </div>
   )
 }

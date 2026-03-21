@@ -2,6 +2,8 @@ import React, { useState, useRef, useCallback } from 'react'
 import { FabricImage } from 'fabric'
 import { v4 as uuidv4 } from 'uuid'
 import { generateImage, editImage, removeBackground, restorePhoto, colorizePhoto, removeRedeye, ASPECT_RATIOS, AI_MODELS } from '../utils/aiImageApi'
+import { saveToGallery } from '../utils/imageGallery'
+import BloodFill from './BloodFill'
 
 const TABS = [
   { id: 'generate', label: 'Generate', icon: '✦' },
@@ -36,6 +38,7 @@ function ImageResult({ url, onAddToCanvas }) {
 
 export default function AiToolsPanel({ canvasState, darkMode }) {
   const dm = darkMode
+  const { bloodRain } = canvasState
   const [activeTab, setActiveTab] = useState('generate')
   const [prompt, setPrompt] = useState('')
   const [aspectRatio, setAspectRatio] = useState('1:1')
@@ -56,6 +59,7 @@ export default function AiToolsPanel({ canvasState, darkMode }) {
     setError('')
     try {
       const data = await generateImage({ prompt: prompt.trim(), aspectRatio, model })
+      data.urls.forEach(url => saveToGallery({ url, prompt: prompt.trim(), source: 'Text to Image' }))
       setResults(prev => [...data.urls.map(url => ({ url, type: 'generated' })), ...prev])
     } catch (err) {
       setError(err.message)
@@ -149,7 +153,7 @@ export default function AiToolsPanel({ canvasState, darkMode }) {
 
   return (
     <div
-      className="flex flex-col h-full overflow-hidden"
+      className="flex flex-col h-full overflow-hidden relative"
       style={{
         background: dm
           ? 'linear-gradient(180deg, #1a1a2e 0%, #16162a 100%)'
@@ -364,6 +368,7 @@ export default function AiToolsPanel({ canvasState, darkMode }) {
           </div>
         )}
       </div>
+      {bloodRain && <BloodFill />}
     </div>
   )
 }

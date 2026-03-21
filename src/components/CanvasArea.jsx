@@ -493,7 +493,7 @@ export default function CanvasArea({ canvasState }) {
   const blobDrawingRef = useRef(false)
   const blobPointsRef = useRef([])
   const blobBrushSizeRef = useRef(20)
-  const blobBrushColorRef = useRef('#000000')
+  const blobBrushColorRef = useRef('#8B0000')
   const blobBrushShapeRef = useRef('circle')
   const blobBrushAngleRef = useRef(45)
 

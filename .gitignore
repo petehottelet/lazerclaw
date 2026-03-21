@@ -20,6 +20,7 @@ clipart/
 # Sensitive tokens and API keys - NEVER COMMIT
 token.md
 secrets.md
+API_KEYS.md
 *.secret
 
 # OS files

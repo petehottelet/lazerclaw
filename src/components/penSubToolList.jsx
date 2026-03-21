@@ -4,7 +4,7 @@ import { PEN_SUB_TOOLS } from '../utils/penTool'
 export const PEN_SUB_TOOL_LIST = [
   {
     id: PEN_SUB_TOOLS.SELECT,
-    label: 'Selection Tool',
+    label: 'Select',
     desc: 'Select and move entire objects (V)',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="0.5">
@@ -14,7 +14,7 @@ export const PEN_SUB_TOOL_LIST = [
   },
   {
     id: PEN_SUB_TOOLS.DIRECT_SELECT,
-    label: 'Direct Selection',
+    label: 'Direct Select',
     desc: 'Select and move anchor points and handles (A)',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -25,7 +25,7 @@ export const PEN_SUB_TOOL_LIST = [
   },
   {
     id: PEN_SUB_TOOLS.PEN,
-    label: 'Pen Tool',
+    label: 'Pen',
     desc: 'Click to place anchor points, drag to create curves (P)',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -38,7 +38,7 @@ export const PEN_SUB_TOOL_LIST = [
   },
   {
     id: PEN_SUB_TOOLS.ADD_POINT,
-    label: 'Add Anchor Point',
+    label: 'Add Point',
     desc: 'Add anchor points to existing paths (+)',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -52,7 +52,7 @@ export const PEN_SUB_TOOL_LIST = [
   },
   {
     id: PEN_SUB_TOOLS.DELETE_POINT,
-    label: 'Delete Anchor Point',
+    label: 'Delete Point',
     desc: 'Remove anchor points from paths (-)',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -65,7 +65,7 @@ export const PEN_SUB_TOOL_LIST = [
   },
   {
     id: PEN_SUB_TOOLS.CONVERT_POINT,
-    label: 'Anchor Point Tool',
+    label: 'Convert Point',
     desc: 'Drag to create handles, click handle to break link (Shift+C)',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
