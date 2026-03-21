@@ -786,7 +786,7 @@ export default function CanvasArea({ canvasState }) {
 
     c.on('before:render', () => {
       if (c._dtoolExporting) return
-      if (checkerboardRef.current) {
+      if (checkerboardRef.current || darkModeRef.current) {
         c._dtoolSavedBg = c.backgroundColor
         c.backgroundColor = 'transparent'
       }
@@ -836,6 +836,17 @@ export default function CanvasArea({ canvasState }) {
       ctx.fillRect(0, 0, cw, ch)
 
       ctx.restore()
+
+      if (isDark && !showCB) {
+        ctx.save()
+        ctx.globalCompositeOperation = 'destination-over'
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(px, py, pw, ph)
+        ctx.fillStyle = '#1f2937'
+        ctx.fillRect(0, 0, cw, ch)
+        ctx.restore()
+      }
+
       ctx.save()
 
       if (!isDark) {
