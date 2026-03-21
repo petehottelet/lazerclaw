@@ -818,8 +818,8 @@ export default function CanvasArea({ canvasState }) {
       const isDark = darkModeRef.current
       const showCB = checkerboardRef.current
       ctx.fillStyle = showCB
-        ? (isDark ? 'rgba(31, 41, 55, 0.7)' : 'rgba(229, 231, 235, 0.7)')
-        : (isDark ? 'rgba(31, 41, 55, 0.7)' : 'rgba(229, 231, 235, 0.7)')
+        ? (isDark ? 'rgba(31, 41, 55, 0.85)' : 'rgba(229, 231, 235, 0.85)')
+        : (isDark ? 'rgba(31, 41, 55, 0.85)' : 'rgba(229, 231, 235, 0.85)')
 
       ctx.beginPath()
       ctx.moveTo(0, 0)
