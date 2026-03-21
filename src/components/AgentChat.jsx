@@ -1245,7 +1245,7 @@ export default function AgentChat({ canvasState }) {
       setMessages(prev => [...prev, assistantMsg])
     } catch (err) {
       console.error('Chat error:', err)
-      setMessages(prev => [...prev, { role: 'assistant', content: `Sorry, I encountered an error: ${err.message}. Please try again.` }])
+      setMessages(prev => [...prev, { role: 'assistant', content: `Sorry, I encountered an error: ${err.message}` }])
     } finally {
       setLoading(false)
       setReferenceImages([])

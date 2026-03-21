@@ -206,10 +206,11 @@ export default async function handler(req, res) {
       userParts,
     });
   } catch (err) {
-    console.error("NanaBananaChat error:", err);
+    console.error("NanaBananaChat error:", err?.message, err?.stack);
     if (err.name === "AbortError") {
       return res.status(504).json({ error: "Request timed out" });
     }
-    return res.status(500).json({ error: "An unexpected error occurred. Please try again." });
+    const detail = err?.message || String(err);
+    return res.status(500).json({ error: `AI error: ${detail.slice(0, 300)}` });
   }
 }
