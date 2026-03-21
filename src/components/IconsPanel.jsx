@@ -188,18 +188,30 @@ export default function IconsPanel({ canvasState }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [fontsLoaded, setFontsLoaded] = useState(false)
 
-  // Load Material Symbols font
   useEffect(() => {
-    const link = document.createElement('link')
-    link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap'
-    link.rel = 'stylesheet'
-    document.head.appendChild(link)
+    let interval
+    const check = () => document.fonts.check('24px "Material Symbols Outlined"')
 
-    link.onload = () => setFontsLoaded(true)
-
-    return () => {
-      // Don't remove - might be used elsewhere
+    const startPolling = () => {
+      if (check()) { setFontsLoaded(true); return }
+      interval = setInterval(() => {
+        if (check()) { setFontsLoaded(true); clearInterval(interval) }
+      }, 150)
     }
+
+    const existing = document.querySelector('link[href*="Material+Symbols+Outlined"]')
+    if (existing) {
+      startPolling()
+    } else {
+      const link = document.createElement('link')
+      link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap'
+      link.rel = 'stylesheet'
+      link.onload = () => startPolling()
+      document.head.appendChild(link)
+    }
+
+    const fallback = setTimeout(() => setFontsLoaded(true), 4000)
+    return () => { clearInterval(interval); clearTimeout(fallback) }
   }, [])
 
   const addIcon = useCallback(async (iconName) => {

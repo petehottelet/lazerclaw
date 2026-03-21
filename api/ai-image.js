@@ -49,15 +49,33 @@ export default async function handler(req, res) {
 
       if (!response.ok) {
         const errText = await response.text()
-        return res.status(response.status).json({ error: errText })
+        console.error('NanoBanana API error:', response.status, errText)
+        return res.status(response.status).json({ error: `API returned ${response.status}: ${errText.slice(0, 200)}` })
       }
 
       const data = await response.json()
-      if (data.code !== 0) {
+      console.log('NanoBanana API response keys:', Object.keys(data), 'code:', data.code)
+
+      if (data.code !== undefined && data.code !== 0) {
         return res.status(400).json({ error: data.message || 'Image generation failed' })
       }
 
-      const urls = Array.isArray(data.data?.url) ? data.data.url : [data.data?.url]
+      let urls = []
+      if (data.data?.url) {
+        urls = Array.isArray(data.data.url) ? data.data.url : [data.data.url]
+      } else if (data.data?.images) {
+        urls = data.data.images.map(i => i.url || i)
+      } else if (data.images) {
+        urls = data.images.map(i => i.url || i)
+      } else if (data.url) {
+        urls = Array.isArray(data.url) ? data.url : [data.url]
+      }
+
+      if (urls.length === 0) {
+        console.error('No URLs found in response:', JSON.stringify(data).slice(0, 500))
+        return res.status(500).json({ error: 'No image URLs in API response' })
+      }
+
       return res.status(200).json({ urls })
     }
 

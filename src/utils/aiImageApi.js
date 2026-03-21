@@ -1,19 +1,73 @@
 const METAL_ENHANCERS = [
-  'with dramatic lightning bolts and electric energy',
-  'with chrome metallic textures and neon purple glow',
-  'with 80s hair metal concert lighting and smoke machines',
-  'in a heavy metal album cover aesthetic with dark dramatic lighting',
-  'with electric guitar riffs visualized as energy waves',
-  'with leather and chrome accents, concert stage atmosphere',
-  'with molten metal and volcanic energy effects',
-  'with power chord energy and amplifier stack vibes',
-  'with battle vest patches and studded leather details',
-  'with arena rock lighting and pyrotechnic effects',
+  // Classic metal vibes
+  'with dramatic lightning bolts crackling across a blood-red sky',
+  'with chrome skulls reflecting neon purple light in a hall of mirrors',
+  'with a wall of Marshall amplifier stacks stretching into infinity behind everything',
+  'emerging from a volcanic eruption of molten chrome and liquid fire',
+  'with 80s hair metal concert pyrotechnics exploding in the background',
+
+  // Weird and surreal
+  'riding a flaming motorcycle through a cathedral made of electric guitars',
+  'surrounded by levitating chrome lobsters shooting lasers from their eyes',
+  'inside a giant pinball machine made of bones and neon tubing',
+  'reflected in the chrome hubcap of a monster truck parked on the moon',
+  'tattooed on the bicep of a giant robot arm reaching out of the ocean',
+  'projected onto storm clouds by a lighthouse made of stacked Marshall amps',
+  'growing out of a crack in a vinyl record the size of a continent',
+  'printed on the sail of a Viking longship crewed by skeleton musicians',
+  'displayed on a jumbotron at a sold-out arena where the audience is all crabs',
+  'carved into the side of a mountain by a laser beam from a flying V guitar',
+
+  // Cosmic and apocalyptic
+  'with a black hole swirling behind it made of purple fire and chrome debris',
+  'floating in the void of space surrounded by asteroid fragments shaped like pentagrams',
+  'silhouetted against a supernova explosion with twin suns and a rings of fire',
+  'on an altar in a ruined temple with columns made of twisted iron and chain',
+  'at the epicenter of a nuclear blast frozen in time with a mushroom cloud of sparks',
+
+  // Creatures and characters
+  'being carried by a flock of ravens made of liquid mercury',
+  'guarded by a three-headed hydra wearing spiked leather armor',
+  'with a spectral wolf howling on a cliff edge wreathed in blue lightning',
+  'held aloft by skeletal hands bursting through cracked earth',
+  'observed by a cybernetic kraken rising from an ocean of blood',
+  'surrounded by demon butterflies with stained-glass wings on fire',
+
+  // Textures and materials
+  'rendered in hammered black iron with rivets and chains',
+  'made of dripping candle wax, rusted iron, and shattered stained glass',
+  'with surfaces of polished obsidian reflecting hellfire',
+  'wrapped in barbed wire with roses growing through the thorns',
+  'encrusted with gemstones that glow from within like trapped souls',
+  'built from the wreckage of a thousand guitars welded into new forms',
+
+  // Atmospheric
+  'in a fog-choked graveyard lit only by a single flickering amp tube',
+  'backstage at the greatest concert never played, smoke machines going full blast',
+  'during a thunderstorm where every lightning bolt is shaped like a guitar solo',
+  'in a neon-drenched alley where the puddles reflect a different dimension',
+  'at the bottom of the Mariana Trench lit by bioluminescent heavy metal coral',
+  'inside a snow globe filled with ash and tiny floating chrome pentagrams',
+
+  // Absurd and chaotic
+  'wearing a tiny leather jacket and sunglasses regardless of what it is',
+  'with an inexplicable flaming bowling ball rolling through the scene',
+  'photobombed by a headbanging lobster playing a double-neck bass',
+  'with the entire scene reflected in a single drop of White Russian',
+  'where gravity has reversed and everything falls upward into a vortex of sparks',
+  'but everything casts a shadow shaped like a different heavy metal band logo',
+  'with a mosh pit happening in the background even if the scene makes no sense',
+  'and somewhere in the image there is a tiny door leading to another dimension',
 ]
 
 function addMetalFlair(prompt) {
-  const enhancer = METAL_ENHANCERS[Math.floor(Math.random() * METAL_ENHANCERS.length)]
-  return `${prompt}, ${enhancer}`
+  const primary = METAL_ENHANCERS[Math.floor(Math.random() * METAL_ENHANCERS.length)]
+  if (Math.random() < 0.4) {
+    let secondary
+    do { secondary = METAL_ENHANCERS[Math.floor(Math.random() * METAL_ENHANCERS.length)] } while (secondary === primary)
+    return `${prompt}, ${primary}, also ${secondary}`
+  }
+  return `${prompt}, ${primary}`
 }
 
 export async function generateImage({ prompt, aspectRatio = '1:1', num = 1, model, addMetal = true }) {

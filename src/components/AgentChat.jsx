@@ -478,7 +478,7 @@ function TypingIndicator() {
           />
         ))}
       </div>
-      <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">Drunk Robot Lobster is thinking...</span>
+      <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">Dr. Claw is thinking...</span>
     </div>
   )
 }
@@ -502,7 +502,7 @@ function ClawPfp({ size = 36, className = '' }) {
     >
       <img
         src="/dr_claw_pfp.png"
-        alt="Drunk Robot Lobster"
+        alt="Dr. Claw"
         style={{
           width: '100%',
           height: '100%',
@@ -808,21 +808,22 @@ function ChatEdgeArcs({ width, height }) {
       const W = cvs.width, H = cvs.height
       let x1, y1, x2, y2
       const margin = 10
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
       if (side === 0) {
         const t = margin + Math.random() * (W - 2 * margin)
-        x1 = t; y1 = margin; x2 = t + (Math.random() - 0.5) * 60; y2 = margin
+        x1 = t; y1 = margin; x2 = clamp(t + (Math.random() - 0.5) * 360, margin, W - margin); y2 = margin
       } else if (side === 1) {
         const t = margin + Math.random() * (W - 2 * margin)
-        x1 = t; y1 = H - margin; x2 = t + (Math.random() - 0.5) * 60; y2 = H - margin
+        x1 = t; y1 = H - margin; x2 = clamp(t + (Math.random() - 0.5) * 360, margin, W - margin); y2 = H - margin
       } else if (side === 2) {
         const t = margin + Math.random() * (H - 2 * margin)
-        x1 = margin; y1 = t; x2 = margin; y2 = t + (Math.random() - 0.5) * 60
+        x1 = margin; y1 = t; x2 = margin; y2 = clamp(t + (Math.random() - 0.5) * 360, margin, H - margin)
       } else {
         const t = margin + Math.random() * (H - 2 * margin)
-        x1 = W - margin; y1 = t; x2 = W - margin; y2 = t + (Math.random() - 0.5) * 60
+        x1 = W - margin; y1 = t; x2 = W - margin; y2 = clamp(t + (Math.random() - 0.5) * 360, margin, H - margin)
       }
-      const pts = generatePerimeterBolt(x1, y1, x2, y2, 4)
-      arcs.push({ pts, life: 1.0, phase: 'flash', flashTimer: 0.03 + Math.random() * 0.04, fadeRate: 4.0 + Math.random() * 3.0, side })
+      const pts = generatePerimeterBolt(x1, y1, x2, y2, 5)
+      arcs.push({ pts, life: 1.0, phase: 'flash', flashTimer: 0.05 + Math.random() * 0.06, fadeRate: 2.5 + Math.random() * 2.0, side })
     }
 
     function draw(now) {
@@ -834,11 +835,12 @@ function ChatEdgeArcs({ width, height }) {
       nextSpawn -= dt * 1000
       if (nextSpawn <= 0) {
         spawnArc()
-        if (Math.random() < 0.4) spawnArc()
-        nextSpawn = 60 + Math.random() * 120
+        if (Math.random() < 0.6) spawnArc()
+        if (Math.random() < 0.3) spawnArc()
+        nextSpawn = 40 + Math.random() * 80
       }
 
-      if (arcs.length > 8) arcs.splice(0, arcs.length - 8)
+      if (arcs.length > 16) arcs.splice(0, arcs.length - 16)
 
       ctx.save()
       ctx.globalCompositeOperation = 'lighter'
@@ -847,35 +849,36 @@ function ChatEdgeArcs({ width, height }) {
         let alpha
         if (a.phase === 'flash') {
           a.flashTimer -= dt
-          alpha = 0.7 + Math.random() * 0.3
+          alpha = 0.85 + Math.random() * 0.15
           if (a.flashTimer <= 0) a.phase = 'fade'
         } else {
           a.life -= a.fadeRate * dt
           if (a.life <= 0) { arcs.splice(i, 1); continue }
-          alpha = a.life * 0.5
+          alpha = a.life * 0.6
         }
 
-        ctx.shadowColor = `rgba(220,40,40,${alpha * 0.6})`
-        ctx.shadowBlur = 12
-        ctx.strokeStyle = `rgba(255,80,40,${alpha * 0.2})`
-        ctx.lineWidth = 5
+        ctx.shadowColor = `rgba(40,100,255,${alpha * 0.9})`
+        ctx.shadowBlur = 30
+        ctx.strokeStyle = `rgba(50,120,255,${alpha * 0.35})`
+        ctx.lineWidth = 8
         ctx.beginPath()
         ctx.moveTo(a.pts[0].x, a.pts[0].y)
         for (let j = 1; j < a.pts.length; j++) ctx.lineTo(a.pts[j].x, a.pts[j].y)
         ctx.stroke()
 
-        ctx.shadowColor = `rgba(255,120,60,${alpha * 0.8})`
-        ctx.shadowBlur = 6
-        ctx.strokeStyle = `rgba(255,200,100,${alpha * 0.5})`
-        ctx.lineWidth = 2
+        ctx.shadowColor = `rgba(80,160,255,${alpha})`
+        ctx.shadowBlur = 16
+        ctx.strokeStyle = `rgba(110,180,255,${alpha * 0.65})`
+        ctx.lineWidth = 3.5
         ctx.beginPath()
         ctx.moveTo(a.pts[0].x, a.pts[0].y)
         for (let j = 1; j < a.pts.length; j++) ctx.lineTo(a.pts[j].x, a.pts[j].y)
         ctx.stroke()
 
-        ctx.shadowBlur = 2
-        ctx.strokeStyle = `rgba(255,255,220,${alpha * 0.9})`
-        ctx.lineWidth = 0.8
+        ctx.shadowColor = `rgba(160,210,255,${alpha})`
+        ctx.shadowBlur = 5
+        ctx.strokeStyle = `rgba(220,240,255,${alpha * 0.95})`
+        ctx.lineWidth = 1.2
         ctx.beginPath()
         ctx.moveTo(a.pts[0].x, a.pts[0].y)
         for (let j = 1; j < a.pts.length; j++) ctx.lineTo(a.pts[j].x, a.pts[j].y)
@@ -1017,7 +1020,7 @@ export default function AgentChat({ canvasState }) {
   const [wildLightning, setWildLightning] = useState(false)
   const [bloodRain, setBloodRain] = useState(false)
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: "Hey dude! I'm Drunk Robot Lobster, the most metal crustacean design assistant in the seven seas. Tell me what you'd like to create and I'll bring it to life, man — with LIGHTNING SPEED! The Claw abides. 🦞⚡" },
+    { role: 'assistant', content: "Hey dude! I'm Dr. Claw, the most metal crustacean design assistant in the seven seas. Tell me what you'd like to create and I'll bring it to life, man — with LIGHTNING SPEED! The Claw abides. 🦞⚡" },
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -1992,8 +1995,8 @@ export default function AgentChat({ canvasState }) {
               <div className="flex items-center gap-2">
                 <ClawPfp size={36} />
                 <div>
-                  <div className="text-white font-semibold text-sm">Drunk Robot Lobster</div>
-                  <div className="text-xs" style={{ color: '#c4b5fd' }}>Claw Expert</div>
+                  <div className="text-white font-semibold text-sm">Dr. Claw</div>
+                  <div className="text-xs" style={{ color: '#c4b5fd' }}>Drunk Robot Lobster</div>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -2013,7 +2016,7 @@ export default function AgentChat({ canvasState }) {
                 </button>
                 <button
                   onClick={() => {
-                    setMessages([{ role: 'assistant', content: "Hey dude! I'm Drunk Robot Lobster, the most metal crustacean design assistant in the seven seas. Tell me what you'd like to create and I'll bring it to life, man — with LIGHTNING SPEED! The Claw abides. 🦞⚡" }])
+                    setMessages([{ role: 'assistant', content: "Hey dude! I'm Dr. Claw, the most metal crustacean design assistant in the seven seas. Tell me what you'd like to create and I'll bring it to life, man — with LIGHTNING SPEED! The Claw abides. 🦞⚡" }])
                     setReferenceImages([])
                   }}
                   className="w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-white/80 hover:text-white transition-colors"
@@ -2104,7 +2107,7 @@ export default function AgentChat({ canvasState }) {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   onPaste={handlePaste}
-                  placeholder={referenceImages.length > 0 ? "Describe what to create with these\u2026" : "Ask Drunk Robot Lobster to design something..."}
+                  placeholder={referenceImages.length > 0 ? "Describe what to create with these\u2026" : "Ask Dr. Claw to design something..."}
                   className={`w-full resize-none rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent agent-chat-input ${isDark ? 'bg-gray-800 text-gray-200 placeholder-gray-500' : 'bg-white text-gray-800 placeholder-gray-400'}`}
                   style={{ border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(14,165,233,0.2)' }}
                   rows={1}
@@ -2217,7 +2220,7 @@ export default function AgentChat({ canvasState }) {
               }
             }}
             className="agent-fab-btn flex items-center justify-center transition-all duration-200 hover:scale-105 relative overflow-visible"
-            title={isOpen ? 'Close Drunk Robot Lobster' : 'Open Drunk Robot Lobster — AI Design Assistant'}
+            title={isOpen ? 'Close Dr. Claw' : 'Open Dr. Claw — AI Design Assistant'}
             style={{ width: ORB_SIZE, height: ORB_SIZE, borderRadius: '0', background: 'transparent', border: 'none', boxShadow: 'none', outline: 'none', filter: 'none' }}
           >
             <>
@@ -2225,7 +2228,7 @@ export default function AgentChat({ canvasState }) {
               <div className="gem-shimmer-container" style={{ overflow: 'visible', background: 'transparent' }}>
                 <img
                   src="/claw_gem.png"
-                  alt="Drunk Robot Lobster"
+                  alt="Dr. Claw"
                   className={isOpen ? 'gem-heartbeat-active' : ''}
                   style={{
                     width: '100%',

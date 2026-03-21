@@ -55,4 +55,27 @@ export const VECTOR_SHAPE_CATEGORIES = [
       'map_marker_01.svg',
     ],
   },
+  {
+    id: 'vs_rocks',
+    label: 'Rocks',
+    files: [
+      'rock_jagged_01.svg', 'rock_jagged_02.svg',
+      'rock_spiky_01.svg', 'rock_spiky_02.svg',
+      'rock_bulbous_01.svg', 'rock_bulbous_02.svg',
+      'rock_flat_01.svg', 'rock_flat_02.svg',
+      'rock_tall_01.svg', 'rock_tall_02.svg',
+      'rock_crater_01.svg',
+      'rock_crystal_01.svg',
+    ],
+  },
+  {
+    id: 'vs_lobsters',
+    label: 'Lobsters',
+    files: [
+      'lobster_glyph_01.svg', 'lobster_glyph_02.svg', 'lobster_glyph_03.svg',
+      'lobster_glyph_04.svg', 'lobster_glyph_05.svg', 'lobster_glyph_06.svg',
+      'lobster_glyph_07.svg', 'lobster_glyph_08.svg', 'lobster_glyph_09.svg',
+      'lobster_glyph_10.svg', 'lobster_glyph_11.svg', 'lobster_glyph_12.svg',
+    ],
+  },
 ]

@@ -116,7 +116,6 @@ function LogoLightning({ width, height, darkMode }) {
 
       ctx.save()
       ctx.globalCompositeOperation = 'lighter'
-      ctx.globalAlpha = 0.1
 
       // Dragon mouth position (approx 62.5% from left, 39% from top)
       const mouthX = width * 0.625
@@ -128,13 +127,13 @@ function LogoLightning({ width, height, darkMode }) {
       // Main laser bolt - always visible, regenerates for electric effect
       if (frameCount % 2 === 0) {
         const bolt = generateLogoBolt(mouthX, mouthY, tipX, tipY, 5)
-        const intensity = 1.0
+        const intensity = 0.1
 
         // Pass 1 – outer glow
         ctx.shadowColor = `rgba(100,160,255,${intensity})`
-        ctx.shadowBlur = 35
+        ctx.shadowBlur = 3.5
         ctx.strokeStyle = `rgba(60,100,220,${intensity * 0.35})`
-        ctx.lineWidth = 10
+        ctx.lineWidth = 1
         ctx.beginPath()
         ctx.moveTo(bolt[0].x, bolt[0].y)
         for (let i = 1; i < bolt.length; i++) ctx.lineTo(bolt[i].x, bolt[i].y)
@@ -142,9 +141,9 @@ function LogoLightning({ width, height, darkMode }) {
 
         // Pass 2 – mid core
         ctx.shadowColor = `rgba(130,190,255,${intensity})`
-        ctx.shadowBlur = 20
+        ctx.shadowBlur = 2
         ctx.strokeStyle = `rgba(100,170,255,${intensity * 0.7})`
-        ctx.lineWidth = 4
+        ctx.lineWidth = 0.4
         ctx.beginPath()
         ctx.moveTo(bolt[0].x, bolt[0].y)
         for (let i = 1; i < bolt.length; i++) ctx.lineTo(bolt[i].x, bolt[i].y)
@@ -152,9 +151,9 @@ function LogoLightning({ width, height, darkMode }) {
 
         // Pass 3 – bright core
         ctx.shadowColor = `rgba(200,225,255,${intensity})`
-        ctx.shadowBlur = 8
+        ctx.shadowBlur = 0.8
         ctx.strokeStyle = `rgba(230,240,255,${intensity})`
-        ctx.lineWidth = 1.5
+        ctx.lineWidth = 0.15
         ctx.beginPath()
         ctx.moveTo(bolt[0].x, bolt[0].y)
         for (let i = 1; i < bolt.length; i++) ctx.lineTo(bolt[i].x, bolt[i].y)
@@ -188,11 +187,11 @@ function LogoLightning({ width, height, darkMode }) {
           bolt.life -= bolt.decay
           if (bolt.life <= 0) return false
 
-          const alpha = bolt.life
+          const alpha = bolt.life * 0.1
           ctx.shadowColor = `rgba(100,180,255,${alpha})`
-          ctx.shadowBlur = 12
+          ctx.shadowBlur = 1.2
           ctx.strokeStyle = `rgba(150,200,255,${alpha * 0.6})`
-          ctx.lineWidth = 2
+          ctx.lineWidth = 0.2
           ctx.beginPath()
 
           let first = true
@@ -217,9 +216,9 @@ function LogoLightning({ width, height, darkMode }) {
           ctx.stroke()
 
           // Bright core
-          ctx.shadowBlur = 4
+          ctx.shadowBlur = 0.4
           ctx.strokeStyle = `rgba(220,240,255,${alpha * 0.8})`
-          ctx.lineWidth = 0.8
+          ctx.lineWidth = 0.08
           ctx.stroke()
 
           return true
@@ -227,23 +226,23 @@ function LogoLightning({ width, height, darkMode }) {
       }
 
       // Glow at mouth
-      const glowGrad = ctx.createRadialGradient(mouthX, mouthY, 0, mouthX, mouthY, 12)
-      glowGrad.addColorStop(0, 'rgba(100,160,255,0.4)')
-      glowGrad.addColorStop(0.5, 'rgba(130,190,255,0.2)')
+      const glowGrad = ctx.createRadialGradient(mouthX, mouthY, 0, mouthX, mouthY, 4)
+      glowGrad.addColorStop(0, 'rgba(100,160,255,0.04)')
+      glowGrad.addColorStop(0.5, 'rgba(130,190,255,0.02)')
       glowGrad.addColorStop(1, 'transparent')
       ctx.fillStyle = glowGrad
       ctx.beginPath()
-      ctx.arc(mouthX, mouthY, 12, 0, Math.PI * 2)
+      ctx.arc(mouthX, mouthY, 4, 0, Math.PI * 2)
       ctx.fill()
 
       // Glow at tip
-      const tipGrad = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, 8)
-      tipGrad.addColorStop(0, 'rgba(200,225,255,0.6)')
-      tipGrad.addColorStop(0.5, 'rgba(100,160,255,0.3)')
+      const tipGrad = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, 3)
+      tipGrad.addColorStop(0, 'rgba(200,225,255,0.06)')
+      tipGrad.addColorStop(0.5, 'rgba(100,160,255,0.03)')
       tipGrad.addColorStop(1, 'transparent')
       ctx.fillStyle = tipGrad
       ctx.beginPath()
-      ctx.arc(tipX, tipY, 8, 0, Math.PI * 2)
+      ctx.arc(tipX, tipY, 3, 0, Math.PI * 2)
       ctx.fill()
 
       ctx.restore()
@@ -312,6 +311,567 @@ const OffsetInput = ({ label, value, onChange, dm, step }) => {
         }`}
       />
     </div>
+  )
+}
+
+function BloodRainOverlay() {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    const cvs = canvasRef.current
+    if (!cvs) return
+    const ctx = cvs.getContext('2d')
+    let rafId
+
+    const resize = () => {
+      cvs.width = window.innerWidth
+      cvs.height = window.innerHeight
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    const drops = []
+    const splashes = []
+    const MAX_DROPS = 300
+
+    function spawnDrop() {
+      drops.push({
+        x: Math.random() * cvs.width,
+        y: -10 - Math.random() * 80,
+        len: 18 + Math.random() * 35,
+        w: 1 + Math.random() * 2.5,
+        speed: 600 + Math.random() * 800,
+        drift: (Math.random() - 0.5) * 30,
+        alpha: 0.4 + Math.random() * 0.5,
+        hue: Math.random() < 0.3 ? 0 : (355 + Math.random() * 10) % 360,
+      })
+    }
+
+    function spawnSplash(x, y) {
+      const count = 2 + Math.floor(Math.random() * 4)
+      for (let i = 0; i < count; i++) {
+        splashes.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 120,
+          vy: -40 - Math.random() * 80,
+          r: 1 + Math.random() * 2.5,
+          life: 1.0,
+          decay: 2.5 + Math.random() * 2,
+        })
+      }
+    }
+
+    let lastTime = performance.now()
+    let spawnAcc = 0
+
+    function draw(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.05)
+      lastTime = now
+
+      ctx.clearRect(0, 0, cvs.width, cvs.height)
+
+      spawnAcc += dt
+      const spawnRate = 500
+      while (spawnAcc > 0 && drops.length < MAX_DROPS) {
+        spawnDrop()
+        spawnAcc -= 1 / spawnRate
+      }
+      if (spawnAcc > 0) spawnAcc = 0
+
+      ctx.lineCap = 'round'
+      for (let i = drops.length - 1; i >= 0; i--) {
+        const d = drops[i]
+        d.y += d.speed * dt
+        d.x += d.drift * dt
+
+        const grad = ctx.createLinearGradient(d.x, d.y - d.len, d.x, d.y)
+        grad.addColorStop(0, `hsla(${d.hue},90%,25%,0)`)
+        grad.addColorStop(0.3, `hsla(${d.hue},85%,30%,${d.alpha * 0.6})`)
+        grad.addColorStop(1, `hsla(${d.hue},80%,35%,${d.alpha})`)
+        ctx.strokeStyle = grad
+        ctx.lineWidth = d.w
+        ctx.beginPath()
+        ctx.moveTo(d.x, d.y - d.len)
+        ctx.lineTo(d.x, d.y)
+        ctx.stroke()
+
+        ctx.shadowColor = `hsla(${d.hue},100%,40%,${d.alpha * 0.4})`
+        ctx.shadowBlur = 6
+        ctx.beginPath()
+        ctx.arc(d.x, d.y, d.w * 0.6, 0, Math.PI * 2)
+        ctx.fillStyle = `hsla(${d.hue},90%,45%,${d.alpha * 0.8})`
+        ctx.fill()
+        ctx.shadowBlur = 0
+
+        if (d.y > cvs.height) {
+          spawnSplash(d.x, cvs.height - 2)
+          drops.splice(i, 1)
+        }
+      }
+
+      for (let i = splashes.length - 1; i >= 0; i--) {
+        const s = splashes[i]
+        s.x += s.vx * dt
+        s.vy += 300 * dt
+        s.y += s.vy * dt
+        s.life -= s.decay * dt
+        if (s.life <= 0 || s.y > cvs.height + 10) { splashes.splice(i, 1); continue }
+
+        ctx.globalAlpha = s.life * 0.7
+        ctx.fillStyle = `hsla(0,85%,32%,1)`
+        ctx.beginPath()
+        ctx.arc(s.x, s.y, s.r * s.life, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.globalAlpha = 1
+      }
+
+      rafId = requestAnimationFrame(draw)
+    }
+    rafId = requestAnimationFrame(draw)
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      window.removeEventListener('resize', resize)
+    }
+  }, [])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        pointerEvents: 'none',
+      }}
+    />
+  )
+}
+
+function SizeMenuBlood() {
+  const canvasRef = useRef(null)
+  const containerRef = useRef(null)
+
+  useEffect(() => {
+    const container = containerRef.current
+    const cvs = canvasRef.current
+    if (!cvs || !container) return
+    const ctx = cvs.getContext('2d')
+    let rafId
+
+    const resize = () => {
+      const r = container.getBoundingClientRect()
+      cvs.width = r.width
+      cvs.height = r.height
+    }
+    resize()
+    const ro = new ResizeObserver(resize)
+    ro.observe(container)
+
+    const drops = []
+    const splashes = []
+
+    function spawnDrop() {
+      drops.push({
+        x: Math.random() * cvs.width,
+        y: -5 - Math.random() * 30,
+        len: 10 + Math.random() * 22,
+        w: 0.6 + Math.random() * 1.5,
+        speed: 200 + Math.random() * 350,
+        drift: (Math.random() - 0.5) * 12,
+        alpha: 0.35 + Math.random() * 0.45,
+      })
+    }
+
+    function spawnSplash(x, y) {
+      const n = 1 + Math.floor(Math.random() * 3)
+      for (let i = 0; i < n; i++) {
+        splashes.push({ x, y, vx: (Math.random() - 0.5) * 60, vy: -20 - Math.random() * 40, r: 0.5 + Math.random() * 1.5, life: 1, decay: 3 + Math.random() * 2 })
+      }
+    }
+
+    // Wave simulation for sloshing blood pool
+    const WAVE_N = 64
+    const waveH = new Float32Array(WAVE_N)
+    const waveV = new Float32Array(WAVE_N)
+    let poolLevel = 0
+    const poolTarget = 0.3
+    let lastTime = performance.now()
+    let spawnAcc = 0
+
+    function draw(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.04)
+      lastTime = now
+      const W = cvs.width, H = cvs.height
+      ctx.clearRect(0, 0, W, H)
+
+      // Grow pool level
+      if (poolLevel < poolTarget) poolLevel = Math.min(poolTarget, poolLevel + dt * 0.04)
+
+      // Spawn rain
+      spawnAcc += dt
+      const rate = 120
+      while (spawnAcc > 0 && drops.length < 80) { spawnDrop(); spawnAcc -= 1 / rate }
+      if (spawnAcc > 0) spawnAcc = 0
+
+      const poolY = H - H * poolLevel
+
+      // Draw rain drops
+      ctx.lineCap = 'round'
+      for (let i = drops.length - 1; i >= 0; i--) {
+        const d = drops[i]
+        d.y += d.speed * dt
+        d.x += d.drift * dt
+        if (d.y > poolY) {
+          // Perturb wave at impact point
+          const wi = Math.floor((d.x / W) * WAVE_N)
+          if (wi >= 0 && wi < WAVE_N) waveV[wi] -= 1.5 + Math.random() * 2
+          spawnSplash(d.x, poolY)
+          drops.splice(i, 1)
+          continue
+        }
+
+        const grad = ctx.createLinearGradient(d.x, d.y - d.len, d.x, d.y)
+        grad.addColorStop(0, `rgba(140,0,0,0)`)
+        grad.addColorStop(0.3, `rgba(170,0,0,${d.alpha * 0.5})`)
+        grad.addColorStop(1, `rgba(200,10,10,${d.alpha})`)
+        ctx.strokeStyle = grad
+        ctx.lineWidth = d.w
+        ctx.beginPath()
+        ctx.moveTo(d.x, d.y - d.len)
+        ctx.lineTo(d.x, d.y)
+        ctx.stroke()
+      }
+
+      // Splashes
+      for (let i = splashes.length - 1; i >= 0; i--) {
+        const s = splashes[i]
+        s.x += s.vx * dt; s.vy += 150 * dt; s.y += s.vy * dt
+        s.life -= s.decay * dt
+        if (s.life <= 0 || s.y > H) { splashes.splice(i, 1); continue }
+        ctx.globalAlpha = s.life * 0.6
+        ctx.fillStyle = 'rgba(180,10,10,1)'
+        ctx.beginPath()
+        ctx.arc(s.x, s.y, s.r * s.life, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.globalAlpha = 1
+      }
+
+      // Wave physics — spring + damping + neighbor coupling
+      const tension = 180, damping = 3.5, spread = 120
+      for (let i = 0; i < WAVE_N; i++) {
+        const left = i > 0 ? waveH[i - 1] : waveH[i]
+        const right = i < WAVE_N - 1 ? waveH[i + 1] : waveH[i]
+        waveV[i] += (-tension * waveH[i] + spread * (left + right - 2 * waveH[i]) - damping * waveV[i]) * dt
+      }
+      for (let i = 0; i < WAVE_N; i++) waveH[i] += waveV[i] * dt
+
+      // Continuous ambient sloshing
+      const sway = Math.sin(now * 0.0012) * 1.2 + Math.sin(now * 0.0027) * 0.7 + Math.sin(now * 0.0041) * 0.4
+      for (let i = 0; i < WAVE_N; i++) {
+        const phase = (i / WAVE_N) * Math.PI * 2
+        waveV[i] += (Math.sin(phase + now * 0.003) * 0.3 + Math.sin(phase * 2.3 + now * 0.0017) * 0.15) * dt * 40
+      }
+
+      // Draw blood pool with wave surface
+      if (poolLevel > 0) {
+        const segW = W / WAVE_N
+
+        // Dark deep layer
+        ctx.beginPath()
+        ctx.moveTo(0, H)
+        for (let i = 0; i <= WAVE_N; i++) {
+          const wx = i * segW
+          const h = i < WAVE_N ? waveH[i] : waveH[WAVE_N - 1]
+          ctx.lineTo(wx, poolY + h + sway)
+        }
+        ctx.lineTo(W, H)
+        ctx.closePath()
+        const poolGrad = ctx.createLinearGradient(0, poolY, 0, H)
+        poolGrad.addColorStop(0, 'rgba(160,5,5,0.85)')
+        poolGrad.addColorStop(0.3, 'rgba(130,0,0,0.9)')
+        poolGrad.addColorStop(0.7, 'rgba(90,0,0,0.95)')
+        poolGrad.addColorStop(1, 'rgba(50,0,0,1)')
+        ctx.fillStyle = poolGrad
+        ctx.fill()
+
+        // Specular highlight layer on surface
+        ctx.beginPath()
+        ctx.moveTo(0, poolY + sway + (waveH[0] || 0))
+        for (let i = 1; i <= WAVE_N; i++) {
+          const wx = i * segW
+          const h = i < WAVE_N ? waveH[i] : waveH[WAVE_N - 1]
+          ctx.lineTo(wx, poolY + h + sway)
+        }
+        ctx.lineTo(W, poolY + sway + 6)
+        ctx.lineTo(0, poolY + sway + 6)
+        ctx.closePath()
+        const surfGrad = ctx.createLinearGradient(0, 0, W, 0)
+        surfGrad.addColorStop(0, 'rgba(255,80,80,0.05)')
+        surfGrad.addColorStop(0.3, 'rgba(255,140,140,0.2)')
+        surfGrad.addColorStop(0.5, 'rgba(255,180,180,0.3)')
+        surfGrad.addColorStop(0.7, 'rgba(255,140,140,0.2)')
+        surfGrad.addColorStop(1, 'rgba(255,80,80,0.05)')
+        ctx.fillStyle = surfGrad
+        ctx.fill()
+      }
+
+      rafId = requestAnimationFrame(draw)
+    }
+    rafId = requestAnimationFrame(draw)
+
+    return () => { cancelAnimationFrame(rafId); ro.disconnect() }
+  }, [])
+
+  return (
+    <div ref={containerRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1, overflow: 'hidden', borderRadius: 'inherit' }}>
+      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+    </div>
+  )
+}
+
+const NUKE_VERT = `
+attribute vec2 a_pos;
+void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
+`
+
+const NUKE_FRAG = `
+precision highp float;
+uniform float u_time;
+uniform vec2 u_res;
+
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1,0)), f.x),
+             mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), f.x), f.y);
+}
+
+float fbm(vec2 p) {
+  float v = 0.0, a = 0.5;
+  for (int i = 0; i < 6; i++) {
+    v += a * noise(p);
+    p *= 2.0;
+    a *= 0.5;
+  }
+  return v;
+}
+
+float fbm3(vec2 p) {
+  float v = 0.0, a = 0.5;
+  for (int i = 0; i < 3; i++) {
+    v += a * noise(p);
+    p *= 2.2;
+    a *= 0.5;
+  }
+  return v;
+}
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / u_res;
+  float aspect = u_res.x / u_res.y;
+  vec2 p = vec2((uv.x - 0.5) * aspect, uv.y - 0.5);
+  float t = u_time;
+
+  float fadeEnd = 7.5;
+  vec3 col = vec3(0.0);
+  float alpha = 0.0;
+
+  // Phase controls
+  float flashDur = 0.4;
+  float growPhase = clamp((t - 0.2) / 3.5, 0.0, 1.0);
+  float risePhase = clamp((t - 0.5) / 4.0, 0.0, 1.0);
+  float fadeAlpha = t > 5.5 ? 1.0 - (t - 5.5) / 2.0 : 1.0;
+  if (fadeAlpha <= 0.0) { gl_FragColor = vec4(0.0); return; }
+
+  // --- Initial white flash ---
+  if (t < flashDur) {
+    float fi = 1.0 - t / flashDur;
+    float flashR = t / flashDur * 0.8;
+    float flash = smoothstep(flashR, 0.0, length(p)) * fi;
+    col = vec3(1.0, 0.98, 0.9) * flash;
+    alpha = flash;
+  }
+
+  // --- Shockwave ring ---
+  if (t > 0.1 && t < 3.0) {
+    float st = (t - 0.1) / 2.9;
+    float sr = st * 0.9;
+    float ring = exp(-pow((length(p) - sr) * 18.0, 2.0)) * (1.0 - st);
+    col += vec3(1.0, 0.8, 0.4) * ring * 0.6;
+    alpha = max(alpha, ring * 0.5);
+  }
+
+  // --- Ground dust ring ---
+  if (t > 0.3) {
+    float dustT = clamp((t - 0.3) / 4.0, 0.0, 1.0);
+    float dustR = dustT * 0.7;
+    float groundY = -0.35;
+    float dy = uv.y - (groundY + 0.5);
+    float dustMask = exp(-dy * dy * 80.0) * smoothstep(dustR, dustR - 0.15, abs(p.x));
+    float dn = fbm3(vec2(p.x * 6.0 + t * 0.3, dy * 20.0));
+    dustMask *= (0.5 + 0.5 * dn) * dustT;
+    vec3 dustCol = mix(vec3(0.35, 0.2, 0.1), vec3(0.5, 0.35, 0.2), dn);
+    col = mix(col, dustCol, dustMask * 0.7);
+    alpha = max(alpha, dustMask * 0.6);
+  }
+
+  // --- Mushroom stem ---
+  if (t > 0.3) {
+    float stemGrow = clamp((t - 0.3) / 3.0, 0.0, 1.0);
+    float stemTop = mix(-0.3, 0.12, stemGrow);
+    float stemBot = -0.35;
+    float stemY = (p.y - stemBot) / (stemTop - stemBot);
+
+    if (p.y > stemBot && p.y < stemTop) {
+      float baseW = 0.1 + 0.04 * (1.0 - stemY);
+      float neckW = 0.05 + 0.015 * sin(stemY * 12.0 + t * 1.5);
+      float skirtW = baseW * 1.4 * exp(-pow((stemY - 0.08) * 8.0, 2.0));
+      float w = mix(baseW, neckW, smoothstep(0.0, 0.7, stemY)) + skirtW * 0.3;
+
+      float sn = fbm(vec2(p.x * 8.0 + t * 0.4, p.y * 12.0 - t * 2.5));
+      w += sn * 0.025;
+
+      float stemMask = smoothstep(w, w - 0.025, abs(p.x));
+      float temp = (1.0 - stemY) * 0.7 + sn * 0.3;
+      vec3 stemCol = mix(vec3(0.35, 0.15, 0.05), vec3(0.85, 0.3, 0.05), temp);
+      stemCol = mix(stemCol, vec3(1.0, 0.7, 0.2), pow(temp, 3.0) * 0.5);
+      stemCol = mix(stemCol, vec3(0.3, 0.18, 0.1), smoothstep(0.5, 1.0, stemY) * 0.4);
+
+      col = mix(col, stemCol, stemMask * stemGrow);
+      alpha = max(alpha, stemMask * stemGrow * 0.9);
+    }
+  }
+
+  // --- Mushroom cap ---
+  if (t > 0.6) {
+    float capGrow = clamp((t - 0.6) / 3.0, 0.0, 1.0);
+    float capRise = mix(0.0, 0.15, risePhase);
+    vec2 capCenter = vec2(0.0, 0.08 + capRise);
+    float capRx = 0.22 * capGrow;
+    float capRy = 0.14 * capGrow;
+
+    vec2 cp = p - capCenter;
+    float capDist = length(vec2(cp.x / capRx, cp.y / capRy));
+
+    float cn = fbm(vec2(atan(cp.y, cp.x) * 3.0 + t * 0.3, capDist * 6.0 - t * 0.8));
+    float cn2 = fbm(vec2(cp.x * 8.0 - t * 0.5, cp.y * 8.0 + t * 0.7));
+    float edge = 1.0 + cn * 0.35 + cn2 * 0.15;
+
+    float capMask = smoothstep(edge, edge - 0.3, capDist);
+    float temp = (1.0 - capDist / edge) * capMask;
+
+    vec3 capCol = mix(vec3(0.5, 0.18, 0.02), vec3(0.9, 0.35, 0.05), temp);
+    capCol = mix(capCol, vec3(1.0, 0.75, 0.25), temp * temp);
+    capCol = mix(capCol, vec3(1.0, 0.95, 0.8), pow(temp, 4.0));
+
+    // Cauliflower billowing detail
+    float billow = fbm(vec2(cp.x * 15.0 + t * 0.6, cp.y * 15.0 - t * 1.2));
+    capCol = mix(capCol, capCol * 0.6, billow * 0.3 * capMask);
+
+    // Smoke on outer edge
+    float smokeBand = smoothstep(0.6, 0.9, capDist / edge) * capMask;
+    vec3 smokeCol = mix(vec3(0.25, 0.15, 0.08), vec3(0.45, 0.3, 0.2), cn2);
+    capCol = mix(capCol, smokeCol, smokeBand * 0.6);
+
+    // Cap curl-under (torus rim)
+    float rimY = capCenter.y - capRy * 0.5;
+    float rimDist = length(vec2(cp.x / (capRx * 1.1), (p.y - rimY) / (capRy * 0.4)));
+    float rimMask = smoothstep(1.2, 0.8, rimDist) * smoothstep(capCenter.y - capRy * 0.8, capCenter.y, p.y);
+    rimMask *= (1.0 - smoothstep(0.0, 0.5, capDist / edge));
+    vec3 rimCol = mix(vec3(0.6, 0.2, 0.03), vec3(0.9, 0.4, 0.1), cn);
+    capCol = mix(capCol, rimCol, rimMask * 0.4);
+
+    col = mix(col, capCol, capMask * capGrow);
+    alpha = max(alpha, capMask * capGrow);
+  }
+
+  // --- Hot core glow in cap center ---
+  if (t > 1.0 && t < 5.0) {
+    float capRise = mix(0.0, 0.15, risePhase);
+    vec2 capCenter = vec2(0.0, 0.08 + capRise);
+    float glow = exp(-length(p - capCenter) * 8.0) * clamp((t - 1.0) / 1.0, 0.0, 1.0);
+    glow *= smoothstep(5.0, 3.5, t);
+    col += vec3(1.0, 0.9, 0.5) * glow * 0.5;
+    alpha = max(alpha, glow * 0.4);
+  }
+
+  alpha *= clamp(fadeAlpha, 0.0, 1.0);
+  gl_FragColor = vec4(col, clamp(alpha, 0.0, 1.0));
+}
+`
+
+function NukeExplosion({ onComplete }) {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    const cvs = canvasRef.current
+    if (!cvs) return
+    cvs.width = window.innerWidth
+    cvs.height = window.innerHeight
+
+    const gl = cvs.getContext('webgl', { alpha: true, premultipliedAlpha: false })
+    if (!gl) { onComplete(); return }
+
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+
+    function compileShader(src, type) {
+      const s = gl.createShader(type)
+      gl.shaderSource(s, src)
+      gl.compileShader(s)
+      return s
+    }
+
+    const prog = gl.createProgram()
+    gl.attachShader(prog, compileShader(NUKE_VERT, gl.VERTEX_SHADER))
+    gl.attachShader(prog, compileShader(NUKE_FRAG, gl.FRAGMENT_SHADER))
+    gl.linkProgram(prog)
+    gl.useProgram(prog)
+
+    const buf = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf)
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW)
+    const aPos = gl.getAttribLocation(prog, 'a_pos')
+    gl.enableVertexAttribArray(aPos)
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0)
+
+    const uTime = gl.getUniformLocation(prog, 'u_time')
+    const uRes = gl.getUniformLocation(prog, 'u_res')
+    gl.uniform2f(uRes, cvs.width, cvs.height)
+
+    const start = performance.now()
+    const duration = 7000
+    let rafId
+
+    function render() {
+      const elapsed = (performance.now() - start) / 1000
+      if (elapsed > 7.5) {
+        cancelAnimationFrame(rafId)
+        onComplete()
+        return
+      }
+      gl.viewport(0, 0, cvs.width, cvs.height)
+      gl.clearColor(0, 0, 0, 0)
+      gl.clear(gl.COLOR_BUFFER_BIT)
+      gl.uniform1f(uTime, elapsed)
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+      rafId = requestAnimationFrame(render)
+    }
+    rafId = requestAnimationFrame(render)
+
+    return () => cancelAnimationFrame(rafId)
+  }, [onComplete])
+
+  return (
+    <canvas ref={canvasRef} style={{
+      position: 'fixed', inset: 0, zIndex: 10000, pointerEvents: 'none',
+    }} />
   )
 }
 
@@ -841,6 +1401,7 @@ function BlobBrushSettings({ canvasState }) {
               <ColorPicker
                 value={blobBrushColor}
                 onChange={setBlobBrushColor}
+                dm={dm}
               />
             </div>
           </div>
@@ -1168,50 +1729,7 @@ function CanvasSizePicker({ canvasState }) {
             overflow: 'visible',
           }}
         >
-          <div className="blood-rain-container">
-            {[
-              { left: '3%',  delay: 0,    w: 1,   h: 55, fast: true,  dur: 1.1, travel: 600 },
-              { left: '7%',  delay: 0.4,  w: 1.5, h: 75, fast: false, dur: 1.6, travel: 650 },
-              { left: '12%', delay: 0.15, w: 1,   h: 48, fast: true,  dur: 1.0, travel: 580 },
-              { left: '16%', delay: 0.7,  w: 1.5, h: 82, fast: false, dur: 1.8, travel: 670 },
-              { left: '21%', delay: 0.3,  w: 1,   h: 42, fast: true,  dur: 0.9, travel: 560 },
-              { left: '25%', delay: 0.55, w: 1.5, h: 68, fast: false, dur: 1.5, travel: 630 },
-              { left: '30%', delay: 0.08, w: 1,   h: 58, fast: true,  dur: 1.2, travel: 610 },
-              { left: '34%', delay: 0.65, w: 1.5, h: 78, fast: false, dur: 1.7, travel: 660 },
-              { left: '39%', delay: 0.22, w: 1,   h: 38, fast: true,  dur: 0.85, travel: 550 },
-              { left: '43%', delay: 0.48, w: 1.5, h: 65, fast: false, dur: 1.4, travel: 620 },
-              { left: '48%', delay: 0.12, w: 1,   h: 52, fast: true,  dur: 1.05, travel: 590 },
-              { left: '52%', delay: 0.6,  w: 1.5, h: 85, fast: false, dur: 1.9, travel: 680 },
-              { left: '57%', delay: 0.28, w: 1,   h: 44, fast: true,  dur: 0.95, travel: 570 },
-              { left: '61%', delay: 0.42, w: 1.5, h: 72, fast: false, dur: 1.55, travel: 640 },
-              { left: '66%', delay: 0.18, w: 1,   h: 56, fast: true,  dur: 1.15, travel: 605 },
-              { left: '70%', delay: 0.75, w: 1.5, h: 80, fast: false, dur: 1.75, travel: 665 },
-              { left: '75%', delay: 0.35, w: 1,   h: 40, fast: true,  dur: 0.88, travel: 555 },
-              { left: '79%', delay: 0.5,  w: 1.5, h: 70, fast: false, dur: 1.5, travel: 635 },
-              { left: '84%', delay: 0.05, w: 1,   h: 50, fast: true,  dur: 1.0, travel: 585 },
-              { left: '88%', delay: 0.62, w: 1.5, h: 76, fast: false, dur: 1.65, travel: 655 },
-              { left: '93%', delay: 0.25, w: 1,   h: 36, fast: true,  dur: 0.82, travel: 545 },
-              { left: '97%', delay: 0.38, w: 1.5, h: 62, fast: false, dur: 1.35, travel: 615 },
-            ].map((d, i) => (
-              <div key={i} className={`blood-streak${d.fast ? ' fast' : ''}`} style={{ left: d.left, animationDelay: `${d.delay}s`, width: d.w, height: d.h, '--travel': `${d.travel}px`, '--dur': `${d.dur}s`, animationDuration: `${d.dur}s` }}>
-                <div className="blood-streak-inner" />
-              </div>
-            ))}
-
-            {/* Rising blood puddle — fills to 75% */}
-            <div className="blood-puddle">
-              <div className="blood-puddle-fill" />
-              <div className="blood-puddle-meniscus" />
-              <div className="blood-puddle-surface" />
-              <div className="blood-puddle-ripple" style={{ width: 18, height: 7, top: 4, left: '12%', animationDelay: '0s', animationDuration: '2.2s' }} />
-              <div className="blood-puddle-ripple" style={{ width: 14, height: 5, top: 6, left: '35%', animationDelay: '0.6s', animationDuration: '1.8s' }} />
-              <div className="blood-puddle-ripple" style={{ width: 20, height: 8, top: 3, left: '55%', animationDelay: '0.3s', animationDuration: '2.5s' }} />
-              <div className="blood-puddle-ripple" style={{ width: 12, height: 4, top: 5, left: '72%', animationDelay: '0.9s', animationDuration: '2.0s' }} />
-              <div className="blood-puddle-ripple" style={{ width: 16, height: 6, top: 4, left: '88%', animationDelay: '0.45s', animationDuration: '2.3s' }} />
-              <div className="blood-puddle-ripple" style={{ width: 22, height: 9, top: 2, left: '25%', animationDelay: '1.2s', animationDuration: '2.6s' }} />
-              <div className="blood-puddle-ripple" style={{ width: 15, height: 5, top: 5, left: '65%', animationDelay: '0.75s', animationDuration: '1.9s' }} />
-            </div>
-          </div>
+          <SizeMenuBlood />
           <div className="size-shimmer" />
           <div className="max-h-[80vh] overflow-y-auto overflow-x-hidden rounded-lg">
 
@@ -1492,7 +2010,7 @@ function PrinterMarksPanel({ canvasState }) {
       </ToolBtn>
 
       {open && (
-        <div className={`absolute top-full left-0 mt-1 rounded-lg shadow-xl z-50 w-80 max-h-[80vh] overflow-y-auto ${
+        <div className={`absolute top-full right-0 mt-1 rounded-lg shadow-xl z-50 w-80 max-h-[80vh] overflow-y-auto ${
           dm ? 'bg-gray-800 border border-gray-600' : 'bg-white border border-gray-200'
         }`}>
           {/* Header */}
@@ -1657,41 +2175,62 @@ function AiToolsDropdown({ canvasState, dm }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
+  const [error, setError] = useState('')
+
+  const placeImage = useCallback((url) => {
+    const canvas = canvasState?.canvasRef?.current
+    if (!canvas) return
+
+    const tryLoad = (useCors) => {
+      const img = new Image()
+      if (useCors) img.crossOrigin = 'anonymous'
+      img.onload = async () => {
+        const { FabricImage } = await import('fabric')
+        const { v4: uuidv4 } = await import('uuid')
+        if (canvasState.saveUndoState) canvasState.saveUndoState()
+        const fImg = new FabricImage(img, { _dtoolId: uuidv4() })
+        const maxDim = 400
+        if (fImg.width > maxDim || fImg.height > maxDim) {
+          const scale = maxDim / Math.max(fImg.width, fImg.height)
+          fImg.set({ scaleX: scale, scaleY: scale })
+        }
+        fImg.set({ left: 80 + Math.random() * 60, top: 80 + Math.random() * 60 })
+        canvas.add(fImg)
+        canvas.setActiveObject(fImg)
+        canvas.renderAll()
+        if (canvasState.refreshObjects) canvasState.refreshObjects()
+      }
+      img.onerror = () => {
+        if (useCors) {
+          tryLoad(false)
+        } else {
+          console.error('Image failed to load:', url)
+          setError('Image failed to load')
+        }
+      }
+      img.src = url
+    }
+    tryLoad(true)
+  }, [canvasState])
+
   const handleGenerate = async () => {
     if (!prompt.trim() || loading) return
     setLoading(true)
+    setError('')
     try {
       const { generateImage } = await import('../utils/aiImageApi')
       const data = await generateImage({ prompt: prompt.trim() })
       const url = data.urls?.[0]
       if (url) {
-        const canvas = canvasState?.canvasRef?.current
-        if (canvas) {
-          const { FabricImage } = await import('fabric')
-          const { v4: uuidv4 } = await import('uuid')
-          const img = new Image()
-          img.crossOrigin = 'anonymous'
-          img.onload = () => {
-            if (canvasState.saveUndoState) canvasState.saveUndoState()
-            const fImg = new FabricImage(img, { _dtoolId: uuidv4() })
-            const maxDim = 400
-            if (fImg.width > maxDim || fImg.height > maxDim) {
-              const scale = maxDim / Math.max(fImg.width, fImg.height)
-              fImg.set({ scaleX: scale, scaleY: scale })
-            }
-            fImg.set({ left: 80 + Math.random() * 60, top: 80 + Math.random() * 60 })
-            canvas.add(fImg)
-            canvas.setActiveObject(fImg)
-            canvas.renderAll()
-            if (canvasState.refreshObjects) canvasState.refreshObjects()
-          }
-          img.src = url
-        }
+        placeImage(url)
         setPrompt('')
         setOpen(false)
+      } else {
+        setError('No image URL returned')
       }
     } catch (err) {
       console.error('AI image gen failed:', err)
+      setError(err.message || 'Generation failed')
     } finally {
       setLoading(false)
     }
@@ -1701,19 +2240,26 @@ function AiToolsDropdown({ canvasState, dm }) {
     <div ref={ref} className="relative mr-1">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 px-2.5 py-2 rounded text-xs font-bold transition-all hover:scale-105 shrink-0"
+        className={`${open ? 'scale-105' : ''} flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold transition-all hover:scale-105 shrink-0`}
         style={{
-          background: dm ? 'rgba(40,45,60,0.8)' : '#f1f5f9',
-          border: dm ? '1px solid rgba(100,160,255,0.3)' : '1px solid #cbd5e1',
-          color: dm ? '#8bb8ff' : '#2563eb',
+          background: open
+            ? 'linear-gradient(135deg, rgba(99,102,241,0.35) 0%, rgba(139,92,246,0.4) 100%)'
+            : dm
+              ? 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.15) 100%)'
+              : 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.12) 100%)',
+          border: dm ? '1px solid rgba(139,92,246,0.5)' : '1px solid rgba(99,102,241,0.35)',
+          color: dm ? '#c4b5fd' : '#7c3aed',
+          boxShadow: open
+            ? '0 0 16px rgba(139,92,246,0.4), inset 0 0 8px rgba(139,92,246,0.15)'
+            : '0 0 6px rgba(139,92,246,0.1)',
         }}
-        title="AI Tools"
+        title="AI Image Generate"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M10 2 L11.5 6.5 L16 8 L11.5 9.5 L10 14 L8.5 9.5 L4 8 L8.5 6.5 Z" />
+          <path d="M18 10 L19 12.5 L21.5 13.5 L19 14.5 L18 17 L17 14.5 L14.5 13.5 L17 12.5 Z" />
+          <path d="M7 14 L7.7 16 L9.5 16.7 L7.7 17.4 L7 19.5 L6.3 17.4 L4.5 16.7 L6.3 16 Z" />
         </svg>
-        <span className="ai-tools-label">AI Tools</span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
       </button>
       {open && (
         <div
@@ -1752,6 +2298,7 @@ function AiToolsDropdown({ canvasState, dm }) {
           >
             {loading ? 'Generating...' : 'Generate & Add to Canvas'}
           </button>
+          {error && <div className="text-[9px] mt-1 px-1 py-0.5 rounded" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.1)' }}>{error}</div>}
           <div className="text-[9px] mt-1" style={{ color: dm ? '#666' : '#94a3b8' }}>
             For more AI tools (edit, BG removal, restore, colorize), open the AI Tools panel on the left sidebar.
           </div>
@@ -1778,8 +2325,11 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
   const [logoDims, setLogoDims] = useState({ w: 0, h: 0 })
   const [collapse, setCollapse] = useState(0)
   const [musicPlaying, setMusicPlaying] = useState(false)
+  const [bloodRain, setBloodRain] = useState(false)
+  const [nukeActive, setNukeActive] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const musicRef = useRef(null)
+  const bloodAudioRef = useRef(null)
 
   // Initialize audio element
   useEffect(() => {
@@ -1794,6 +2344,65 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
     }
   }, [])
 
+  useEffect(() => {
+    if (!bloodRain) {
+      if (bloodAudioRef.current) {
+        try { bloodAudioRef.current.destroy() } catch {}
+        bloodAudioRef.current = null
+      }
+      const container = document.getElementById('blood-rain-yt')
+      if (container) container.innerHTML = ''
+      return
+    }
+
+    const loadApi = () => {
+      if (window.YT && window.YT.Player) {
+        createPlayer()
+        return
+      }
+      if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+        const tag = document.createElement('script')
+        tag.src = 'https://www.youtube.com/iframe_api'
+        document.head.appendChild(tag)
+      }
+      const prev = window.onYouTubeIframeAPIReady
+      window.onYouTubeIframeAPIReady = () => {
+        if (prev) prev()
+        createPlayer()
+      }
+    }
+
+    const createPlayer = () => {
+      let container = document.getElementById('blood-rain-yt')
+      if (!container) {
+        container = document.createElement('div')
+        container.id = 'blood-rain-yt'
+        container.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none;'
+        document.body.appendChild(container)
+      }
+      const div = document.createElement('div')
+      container.innerHTML = ''
+      container.appendChild(div)
+      bloodAudioRef.current = new window.YT.Player(div, {
+        videoId: 'CkaE237oiwE',
+        playerVars: { autoplay: 1, loop: 1, playlist: 'CkaE237oiwE' },
+        events: {
+          onReady: (e) => { e.target.setVolume(60); e.target.playVideo() },
+        },
+      })
+    }
+
+    loadApi()
+    return () => {
+      if (bloodAudioRef.current) {
+        try { bloodAudioRef.current.destroy() } catch {}
+        bloodAudioRef.current = null
+      }
+      const container = document.getElementById('blood-rain-yt')
+      if (container) container.innerHTML = ''
+    }
+  }, [bloodRain])
+
   const toggleMusic = () => {
     if (!musicRef.current) return
     if (musicPlaying) {
@@ -1804,6 +2413,57 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
       setMusicPlaying(true)
     }
   }
+
+  const triggerNuke = useCallback(() => {
+    if (nukeActive) return
+    setNukeActive(true)
+  }, [nukeActive])
+
+  const onNukeComplete = useCallback(async () => {
+    const canvas = canvasRef.current
+    if (canvas) {
+      saveUndoState()
+      canvas.discardActiveObject()
+      canvas.getObjects().slice().forEach(o => canvas.remove(o))
+      canvas.renderAll()
+      refreshObjects()
+    }
+
+    try {
+      const { generateImage } = await import('../utils/aiImageApi')
+      const data = await generateImage({
+        prompt: 'Nuclear bomb crater aftermath, scorched earth with a massive impact crater, glowing embers, charred ground radiating outward, smoke wisps, devastation',
+        aspectRatio: canvasState.canvasW > canvasState.canvasH ? '16:9' : canvasState.canvasW < canvasState.canvasH ? '9:16' : '1:1',
+      })
+      const url = data.urls?.[0]
+      if (url && canvas) {
+        const { FabricImage } = await import('fabric')
+        const { v4: uuidv4 } = await import('uuid')
+        const tryLoad = (useCors) => {
+          const img = new Image()
+          if (useCors) img.crossOrigin = 'anonymous'
+          img.onload = () => {
+            const fImg = new FabricImage(img, { _dtoolId: uuidv4() })
+            const scale = Math.max(canvasState.canvasW / fImg.width, canvasState.canvasH / fImg.height)
+            fImg.set({
+              scaleX: scale, scaleY: scale,
+              left: (canvasState.canvasW - fImg.width * scale) / 2,
+              top: (canvasState.canvasH - fImg.height * scale) / 2,
+            })
+            canvas.add(fImg)
+            canvas.renderAll()
+            refreshObjects()
+          }
+          img.onerror = () => { if (useCors) tryLoad(false) }
+          img.src = url
+        }
+        tryLoad(true)
+      }
+    } catch (err) {
+      console.error('Crater generation failed:', err)
+    }
+    setNukeActive(false)
+  }, [canvasRef, saveUndoState, refreshObjects, canvasState])
 
   // Condense earlier so nav never overflows — aggressive breakpoints prevent overlap
   useEffect(() => {
@@ -1856,14 +2516,14 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
       const el = logoShimmerRef.current
       const el2 = logoShimmer2Ref.current
       if (el) {
-        sweepEl(el, 40 + Math.random() * 40, 0.25 + Math.random() * 0.12)
+        sweepEl(el, 40 + Math.random() * 40, 0.5 + Math.random() * 0.24)
         if (el2 && Math.random() < 0.35) {
-          setTimeout(() => sweepEl(el2, 20 + Math.random() * 30, 0.2 + Math.random() * 0.1), 40 + Math.random() * 80)
+          setTimeout(() => sweepEl(el2, 20 + Math.random() * 30, 0.4 + Math.random() * 0.2), 80 + Math.random() * 160)
         }
       }
-      timer = setTimeout(triggerShimmer, 2500 + Math.random() * 5000)
+      timer = setTimeout(triggerShimmer, 5000 + Math.random() * 10000)
     }
-    timer = setTimeout(triggerShimmer, 400 + Math.random() * 600)
+    timer = setTimeout(triggerShimmer, 800 + Math.random() * 1200)
     return () => clearTimeout(timer)
   }, [darkMode])
 
@@ -1927,24 +2587,6 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
 
   const _v = historyVersion
   const canvas = canvasRef.current
-  const hasPlayable = canvas && canvas.getObjects().some(o => o._dtoolAnimated || o._dtoolMotionFill)
-  const hasAudio = (canvasState.audioTracks || []).length > 0
-  const hasContent = hasPlayable || hasAudio
-
-  const playBtn = !hasContent ? (
-    <ToolBtn dm={dm} active={false} title="No playable content" style={{ opacity: 0.4, pointerEvents: 'none' }}>{ic.play}<span>Play</span></ToolBtn>
-  ) : (
-    <ToolBtn dm={dm} onClick={() => setAutoplay(v => !v)} active={autoplay} title={autoplay ? 'Pause' : 'Play'}>
-      {autoplay ? ic.play : ic.pause}<span>{autoplay ? 'Playing' : 'Paused'}</span>
-    </ToolBtn>
-  )
-
-  const playDrop = !hasContent ? (
-    <DropItem icon={ic.play} label="Play" disabled dm={dm} />
-  ) : (
-    <DropItem icon={autoplay ? ic.play : ic.pause} label={autoplay ? 'Pause' : 'Play'} onClick={() => setAutoplay(v => !v)} dm={dm} />
-  )
-
   return (
     <div ref={toolbarRef} className={`relative z-50 h-[66px] border-b flex items-center px-2 pr-2 shrink-0 min-w-0 ${dm ? 'galaxy-header' : ''} ${collapse >= 1 ? 'tb-compact' : ''}`}
       style={{
@@ -2059,8 +2701,6 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
           <Div />
           <CanvasSizePicker canvasState={canvasState} />
           <PrinterMarksPanel canvasState={canvasState} />
-          <Div />
-          {playBtn}
         </>
       )}
 
@@ -2092,8 +2732,6 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
           <ToolBtn dm={dm} onClick={deleteSelected} disabled={!hasSelection} title="Delete (Del)">{ic.del}<span>Delete</span></ToolBtn>
           <Div />
           <CanvasSizePicker canvasState={canvasState} />
-          <Div />
-          {playBtn}
         </>
       )}
 
@@ -2128,9 +2766,6 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
           <PenToolSettings canvasState={canvasState} />
 
           <Div />
-          <ToolDropdown label="Canvas" icon={ic.canvas} dm={dm}>
-            {playDrop}
-          </ToolDropdown>
           <CanvasSizePicker canvasState={canvasState} />
         </>
       )}
@@ -2158,9 +2793,6 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
             <DropItem icon={ic.grp} label="Group" onClick={groupSelected} disabled={!isMultiSelection} dm={dm} />
             <DropItem icon={ic.ungrp} label="Ungroup" onClick={ungroupSelected} disabled={!isGroup} dm={dm} />
             <DropItem icon={ic.mask} label="Mask" onClick={canvasState.createMask} disabled={!canMask} dm={dm} />
-            <DropSep dm={dm} />
-            <DropLabel dm={dm}>Canvas</DropLabel>
-            {playDrop}
           </ToolDropdown>
           <CanvasSizePicker canvasState={canvasState} />
         </>
@@ -2187,79 +2819,74 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
             <DropItem icon={ic.grp} label="Group" onClick={groupSelected} disabled={!isMultiSelection} dm={dm} />
             <DropItem icon={ic.ungrp} label="Ungroup" onClick={ungroupSelected} disabled={!isGroup} dm={dm} />
             <DropItem icon={ic.mask} label="Mask" onClick={canvasState.createMask} disabled={!canMask} dm={dm} />
-            <DropSep dm={dm} />
-            <DropLabel dm={dm}>Canvas</DropLabel>
-            {playDrop}
           </ToolDropdown>
         </>
       )}
 
-      {/* Music / Theme Song button - FLAME icon with shimmer */}
+      {/* AI Image Generate */}
       {collapse < 4 && <Div />}
+      <AiToolsDropdown canvasState={canvasState} dm={dm} />
+
+      {/* Music / Theme Song button */}
       <button
         onClick={toggleMusic}
-        className={`${collapse >= 4 ? 'w-8 h-8' : 'w-10 h-10'} flex items-center justify-center rounded-xl transition-all shrink-0 relative overflow-hidden`}
+        className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors shrink-0 ${dm ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
         title={musicPlaying ? 'Pause Theme Song' : 'Play Theme Song'}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill={musicPlaying ? '#f59e0b' : (dm ? 'rgba(200,170,100,0.5)' : 'rgba(150,120,40,0.45)')}>
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+        </svg>
+      </button>
+
+      {/* Blood Rain toggle */}
+      <button
+        onClick={() => setBloodRain(v => !v)}
+        className={`${collapse >= 4 ? 'w-8 h-8' : 'w-10 h-10'} flex items-center justify-center rounded-xl transition-all shrink-0 relative overflow-hidden`}
+        title={bloodRain ? 'Stop Blood Rain' : 'Blood Rain'}
         style={{
-          background: musicPlaying
-            ? 'linear-gradient(135deg, rgba(220,80,20,0.35) 0%, rgba(245,158,11,0.4) 50%, rgba(220,80,20,0.35) 100%)'
+          background: bloodRain
+            ? 'linear-gradient(135deg, rgba(180,20,20,0.4) 0%, rgba(120,0,0,0.45) 100%)'
             : dm
-              ? 'linear-gradient(135deg, rgba(180,60,10,0.15) 0%, rgba(220,120,30,0.18) 50%, rgba(180,60,10,0.15) 100%)'
-              : 'linear-gradient(135deg, rgba(234,88,12,0.08) 0%, rgba(245,158,11,0.12) 50%, rgba(234,88,12,0.08) 100%)',
-          border: dm ? '1px solid rgba(245,158,11,0.5)' : '1px solid rgba(234,88,12,0.3)',
-          boxShadow: musicPlaying
-            ? '0 0 18px rgba(245,158,11,0.5), 0 0 36px rgba(234,88,12,0.3), inset 0 0 10px rgba(245,158,11,0.25)'
+              ? 'linear-gradient(135deg, rgba(120,20,20,0.15) 0%, rgba(80,10,10,0.18) 100%)'
+              : 'linear-gradient(135deg, rgba(180,20,20,0.08) 0%, rgba(120,0,0,0.12) 100%)',
+          border: dm ? '1px solid rgba(220,40,40,0.5)' : '1px solid rgba(180,20,20,0.3)',
+          boxShadow: bloodRain
+            ? '0 0 18px rgba(220,40,40,0.5), 0 0 36px rgba(140,0,0,0.3), inset 0 0 10px rgba(220,40,40,0.25)'
             : dm
-              ? '0 0 8px rgba(245,158,11,0.15), inset 0 0 4px rgba(234,88,12,0.08)'
-              : '0 1px 3px rgba(0,0,0,0.1)',
+              ? '0 0 8px rgba(220,40,40,0.15), inset 0 0 4px rgba(140,0,0,0.08)'
+              : '0 0 4px rgba(180,20,20,0.1)',
         }}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="none">
-          <defs>
-            <linearGradient id="fireGrad" x1="0.5" y1="1" x2="0.5" y2="0">
-              <stop offset="0%" stopColor="#dc2626" />
-              <stop offset="40%" stopColor="#ea580c" />
-              <stop offset="70%" stopColor="#f59e0b" />
-              <stop offset="100%" stopColor="#fbbf24" />
-            </linearGradient>
-            <linearGradient id="fireInner" x1="0.5" y1="1" x2="0.5" y2="0">
-              <stop offset="0%" stopColor="#f59e0b" />
-              <stop offset="60%" stopColor="#fbbf24" />
-              <stop offset="100%" stopColor="#fef3c7" />
-            </linearGradient>
-          </defs>
-          <path d="M12 23c-3.866 0-7-2.686-7-6 0-2.91 2.184-5.399 4.5-7.463C11.266 7.906 12 6.2 12 4c0 .9.75 2.293 1.5 3.5.667 1.074 1.5 2.2 1.5 3.5 0 1.657-.716 2.886-1.5 3.5.607-.456 1.5-1.6 1.5-3 0 0 2 2.1 2 5 0 3.314-2.134 6.5-5 6.5z"
-            fill="url(#fireGrad)" fillOpacity={musicPlaying ? '1' : '0.75'} />
-          <path d="M12 23c-1.657 0-3-1.343-3-3 0-1.8 1.5-3 3-5 1.5 2 3 3.2 3 5 0 1.657-1.343 3-3 3z"
-            fill="url(#fireInner)" fillOpacity={musicPlaying ? '0.9' : '0.5'} />
+        <svg width={collapse >= 4 ? 16 : 20} height={collapse >= 4 ? 16 : 20} viewBox="0 0 24 24" fill="none">
+          <path d="M12 2C12 2 6 10 6 15a6 6 0 0012 0c0-5-6-13-6-13z" fill={bloodRain ? '#dc2626' : (dm ? 'rgba(220,60,60,0.7)' : 'rgba(180,30,30,0.55)')} />
+          <ellipse cx="10" cy="16" rx="1.5" ry="2" fill="rgba(255,255,255,0.25)" />
         </svg>
-        {musicPlaying && (
+        {bloodRain && (
           <div className="absolute inset-0 pointer-events-none" style={{
-            background: 'linear-gradient(100deg, transparent 20%, rgba(251,191,36,0.25) 45%, rgba(245,158,11,0.35) 50%, rgba(251,191,36,0.25) 55%, transparent 80%)',
+            background: 'linear-gradient(100deg, transparent 20%, rgba(220,40,40,0.3) 45%, rgba(180,0,0,0.4) 50%, rgba(220,40,40,0.3) 55%, transparent 80%)',
             animation: 'fireShimmer 1.8s ease-in-out infinite',
           }} />
         )}
-        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center" style={{
-          background: musicPlaying
-            ? 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)'
-            : 'linear-gradient(135deg, #b45309 0%, #92400e 100%)',
-          boxShadow: musicPlaying
-            ? '0 0 10px rgba(245,158,11,0.9), 0 0 20px rgba(234,88,12,0.5)'
-            : '0 0 5px rgba(245,158,11,0.3)',
-          border: '1px solid rgba(254,243,199,0.3)',
-        }}>
-          {musicPlaying ? (
-            <svg width="7" height="7" viewBox="0 0 24 24" fill="white">
-              <rect x="6" y="4" width="4" height="16" rx="1" />
-              <rect x="14" y="4" width="4" height="16" rx="1" />
-            </svg>
-          ) : (
-            <svg width="7" height="7" viewBox="0 0 24 24" fill="white">
-              <polygon points="6,4 18,12 6,20" />
-            </svg>
-          )}
-        </div>
       </button>
+
+      {bloodRain && <BloodRainOverlay />}
+
+      {/* Nuclear Explosion */}
+      <button
+        onClick={triggerNuke}
+        disabled={nukeActive}
+        className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors shrink-0 ${nukeActive ? 'animate-pulse' : ''} ${dm ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
+        title="Nuclear Explosion"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill={nukeActive ? '#f59e0b' : (dm ? 'rgba(220,180,60,0.5)' : 'rgba(180,140,30,0.45)')}>
+          <circle cx="12" cy="12" r="2.5" />
+          <path d="M12 9.5 C10.5 7.5 10 5 11 2.5 A10 10 0 0 1 18.5 6.5 C17 6 14.5 7 13.2 9" />
+          <path d="M14 13.5 C16 14.5 17.5 16.5 17.5 19 A10 10 0 0 1 6.5 19 C8 18 9.5 16 10 13.5" />
+          <path d="M10.2 11 C8.5 10 6.5 10 4 11.5 A10 10 0 0 1 8.5 3 C8.5 5 9.5 7 10.8 9" />
+        </svg>
+      </button>
+
+      {nukeActive && <NukeExplosion onComplete={onNukeComplete} />}
 
       {/* Dark/Light mode toggle */}
       <button

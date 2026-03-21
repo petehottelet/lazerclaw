@@ -818,8 +818,8 @@ export default function CanvasArea({ canvasState }) {
       const isDark = darkModeRef.current
       const showCB = checkerboardRef.current
       ctx.fillStyle = showCB
-        ? (isDark ? '#1f2937' : '#e5e7eb')
-        : (isDark ? '#1f2937' : PASTEBOARD_COLOR)
+        ? (isDark ? 'rgba(31, 41, 55, 0.7)' : 'rgba(229, 231, 235, 0.7)')
+        : (isDark ? 'rgba(31, 41, 55, 0.7)' : 'rgba(229, 231, 235, 0.7)')
 
       ctx.beginPath()
       ctx.moveTo(0, 0)
@@ -1128,7 +1128,7 @@ export default function CanvasArea({ canvasState }) {
           const r = (blobBrushSizeRef.current / 2) * z
           const sh = blobBrushShapeRef.current
           ctx.save()
-          ctx.strokeStyle = 'rgba(0,0,0,0.5)'
+          ctx.strokeStyle = darkModeRef.current ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)'
           ctx.lineWidth = 1
           ctx.setLineDash([3, 3])
           const bA = -blobBrushAngleRef.current * Math.PI / 180
