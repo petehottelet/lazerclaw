@@ -116,6 +116,7 @@ function LogoLightning({ width, height, darkMode }) {
 
       ctx.save()
       ctx.globalCompositeOperation = 'lighter'
+      ctx.globalAlpha = 0.1
 
       // Dragon mouth position (approx 62.5% from left, 39% from top)
       const mouthX = width * 0.625
