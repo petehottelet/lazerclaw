@@ -532,7 +532,7 @@ function MessageBubble({ message, darkMode, onAddToDesign, onChoiceClick, msgInd
           isUser ? 'text-white rounded-br-md' : 'rounded-bl-md'
         }`}
         style={isUser
-          ? { background: 'linear-gradient(180deg, #181440 0%, #7888c8 48%, #ffffff 50%, #2a1050 52%, #8848c8 100%)', border: '1px solid rgba(192,192,208,0.3)' }
+          ? { background: 'linear-gradient(180deg, #181440 0%, #7888c8 48%, #ffffff 50%, #2a1050 52%, #8848c8 100%)', border: '1px solid rgba(192,192,208,0.3)', textShadow: '0 1px 3px rgba(0,0,0,0.7), 0 0 6px rgba(0,0,0,0.3)' }
           : { background: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(14,165,233,0.08)', color: darkMode ? '#e2e8f0' : '#1e293b' }
         }
       >
