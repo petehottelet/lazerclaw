@@ -640,169 +640,158 @@ precision highp float;
 uniform float u_time;
 uniform vec2 u_res;
 
-float hash(vec2 p) {
-  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-}
+float hash(float n) { return fract(sin(n) * 43758.5453123); }
 
-float noise(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
+float noise3(vec3 x) {
+  vec3 p = floor(x);
+  vec3 f = fract(x);
   f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(hash(i), hash(i + vec2(1,0)), f.x),
-             mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), f.x), f.y);
+  float n = p.x + p.y * 157.0 + p.z * 113.0;
+  return mix(
+    mix(mix(hash(n),         hash(n + 1.0),   f.x),
+        mix(hash(n + 157.0), hash(n + 158.0), f.x), f.y),
+    mix(mix(hash(n + 113.0), hash(n + 114.0), f.x),
+        mix(hash(n + 270.0), hash(n + 271.0), f.x), f.y),
+    f.z);
 }
 
-float fbm(vec2 p) {
-  float v = 0.0, a = 0.5;
-  for (int i = 0; i < 6; i++) {
-    v += a * noise(p);
-    p *= 2.0;
-    a *= 0.5;
-  }
-  return v;
+float fbm4(vec3 p) {
+  float f = 0.5 * noise3(p); p = p * 2.02 + vec3(1.7, 2.3, 0.9);
+  f += 0.25 * noise3(p);     p = p * 2.03 + vec3(0.5, 1.1, 2.4);
+  f += 0.125 * noise3(p);    p = p * 2.01 + vec3(2.1, 0.3, 1.6);
+  f += 0.0625 * noise3(p);
+  return f / 0.9375;
 }
 
-float fbm3(vec2 p) {
-  float v = 0.0, a = 0.5;
-  for (int i = 0; i < 3; i++) {
-    v += a * noise(p);
-    p *= 2.2;
-    a *= 0.5;
+float fbm2(vec3 p) {
+  return 0.667 * noise3(p) + 0.333 * noise3(p * 2.02 + vec3(1.7, 2.3, 0.9));
+}
+
+float smin(float a, float b, float k) {
+  float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+  return mix(b, a, h) - k * h * (1.0 - h);
+}
+
+float cloudShape(vec3 p, float t) {
+  float grow = smoothstep(0.3, 4.0, t);
+  if (grow < 0.01) return 0.0;
+  float rise = smoothstep(0.8, 5.0, t) * 2.5;
+  float d = 0.0;
+
+  float stemBot = -0.5;
+  float stemH = 3.5 * grow;
+  float stemTop = stemBot + stemH + rise * 0.3;
+
+  if (p.y > stemBot - 0.3 && p.y < stemTop + 0.2) {
+    float sy = clamp((p.y - stemBot) / max(stemTop - stemBot, 0.01), 0.0, 1.0);
+    float w = (0.55 - 0.25 * sy) * grow + 0.35 * grow * exp(-sy * 4.0);
+    w = max(w, 0.12 * grow);
+    float r = length(p.xz);
+    float s = smoothstep(w, w * 0.5, r);
+    s *= smoothstep(stemBot - 0.2, stemBot + 0.3, p.y);
+    s *= 1.0 - smoothstep(stemTop - 0.2, stemTop + 0.1, p.y);
+    d = s;
   }
-  return v;
+
+  float capY = stemTop + 0.3;
+  vec3 cp = p - vec3(0.0, capY, 0.0);
+  float majR = 1.3 * grow;
+  float minR = 0.7 * grow;
+  float q = length(cp.xz) - majR;
+  float torus = length(vec2(q, cp.y * 1.3)) - minR;
+  vec3 domeP = cp - vec3(0.0, minR * 0.35, 0.0);
+  float dome = length(domeP) - majR * 0.78;
+  float capSDF = smin(torus, dome, 0.35 * grow);
+  float cap = smoothstep(0.12 * grow, -0.35 * grow, capSDF);
+  d = max(d, cap);
+
+  if (t > 0.3) {
+    float dt = clamp((t - 0.3) / 3.0, 0.0, 1.0);
+    float dr = dt * 2.5;
+    float r = length(p.xz);
+    float ring = exp(-pow((r - dr) * 2.5, 2.0)) * exp(-pow((p.y + 0.3) * 5.0, 2.0)) * dt * 0.4;
+    d = max(d, ring);
+  }
+
+  return clamp(d, 0.0, 1.0);
 }
 
 void main() {
-  vec2 uv = gl_FragCoord.xy / u_res;
-  float aspect = u_res.x / u_res.y;
-  vec2 p = vec2((uv.x - 0.5) * aspect, uv.y - 0.5);
+  vec2 uv = (gl_FragCoord.xy - 0.5 * u_res) / u_res.y;
   float t = u_time;
 
-  float fadeEnd = 7.5;
-  vec3 col = vec3(0.0);
-  float alpha = 0.0;
-
-  // Phase controls
-  float flashDur = 0.4;
-  float growPhase = clamp((t - 0.2) / 3.5, 0.0, 1.0);
-  float risePhase = clamp((t - 0.5) / 4.0, 0.0, 1.0);
   float fadeAlpha = t > 5.5 ? 1.0 - (t - 5.5) / 2.0 : 1.0;
   if (fadeAlpha <= 0.0) { gl_FragColor = vec4(0.0); return; }
 
-  // --- Initial white flash ---
-  if (t < flashDur) {
-    float fi = 1.0 - t / flashDur;
-    float flashR = t / flashDur * 0.8;
-    float flash = smoothstep(flashR, 0.0, length(p)) * fi;
-    col = vec3(1.0, 0.98, 0.9) * flash;
-    alpha = flash;
-  }
+  vec3 ro = vec3(0.0, 1.5, 6.0);
+  vec3 rd = normalize(vec3(uv.x, uv.y, -1.5));
+  vec3 sun = normalize(vec3(0.4, 0.7, 0.3));
 
-  // --- Shockwave ring ---
-  if (t > 0.1 && t < 3.0) {
-    float st = (t - 0.1) / 2.9;
-    float sr = st * 0.9;
-    float ring = exp(-pow((length(p) - sr) * 18.0, 2.0)) * (1.0 - st);
-    col += vec3(1.0, 0.8, 0.4) * ring * 0.6;
-    alpha = max(alpha, ring * 0.5);
-  }
+  vec4 sum = vec4(0.0);
 
-  // --- Ground dust ring ---
-  if (t > 0.3) {
-    float dustT = clamp((t - 0.3) / 4.0, 0.0, 1.0);
-    float dustR = dustT * 0.7;
-    float groundY = -0.35;
-    float dy = uv.y - (groundY + 0.5);
-    float dustMask = exp(-dy * dy * 80.0) * smoothstep(dustR, dustR - 0.15, abs(p.x));
-    float dn = fbm3(vec2(p.x * 6.0 + t * 0.3, dy * 20.0));
-    dustMask *= (0.5 + 0.5 * dn) * dustT;
-    vec3 dustCol = mix(vec3(0.35, 0.2, 0.1), vec3(0.5, 0.35, 0.2), dn);
-    col = mix(col, dustCol, dustMask * 0.7);
-    alpha = max(alpha, dustMask * 0.6);
-  }
+  for (int i = 0; i < 80; i++) {
+    if (sum.a > 0.97) break;
+    float md = 2.0 + float(i) * 0.1;
+    vec3 pos = ro + rd * md;
 
-  // --- Mushroom stem ---
-  if (t > 0.3) {
-    float stemGrow = clamp((t - 0.3) / 3.0, 0.0, 1.0);
-    float stemTop = mix(-0.3, 0.12, stemGrow);
-    float stemBot = -0.35;
-    float stemY = (p.y - stemBot) / (stemTop - stemBot);
+    if (pos.y > -2.0 && pos.y < 12.0 && length(pos.xz) < 5.0) {
+      float shape = cloudShape(pos, t);
 
-    if (p.y > stemBot && p.y < stemTop) {
-      float baseW = 0.1 + 0.04 * (1.0 - stemY);
-      float neckW = 0.05 + 0.015 * sin(stemY * 12.0 + t * 1.5);
-      float skirtW = baseW * 1.4 * exp(-pow((stemY - 0.08) * 8.0, 2.0));
-      float w = mix(baseW, neckW, smoothstep(0.0, 0.7, stemY)) + skirtW * 0.3;
+      if (shape > 0.01) {
+        vec3 np = pos * 1.3 + vec3(0.0, -t * 1.2, 0.0);
+        float turb = fbm4(np);
+        float d = shape * (turb * 0.6 + 0.4);
+        d *= smoothstep(0.04, 0.2, d);
 
-      float sn = fbm(vec2(p.x * 8.0 + t * 0.4, p.y * 12.0 - t * 2.5));
-      w += sn * 0.025;
+        if (d > 0.005) {
+          float cDist = length(pos.xz);
+          float temp = exp(-cDist * 0.4) * (0.4 + 0.6 * clamp(1.0 - pos.y / 8.0, 0.0, 1.0));
+          temp *= 1.0 - smoothstep(1.5, 5.0, t) * 0.4;
+          temp = clamp(temp, 0.0, 1.0);
 
-      float stemMask = smoothstep(w, w - 0.025, abs(p.x));
-      float temp = (1.0 - stemY) * 0.7 + sn * 0.3;
-      vec3 stemCol = mix(vec3(0.35, 0.15, 0.05), vec3(0.85, 0.3, 0.05), temp);
-      stemCol = mix(stemCol, vec3(1.0, 0.7, 0.2), pow(temp, 3.0) * 0.5);
-      stemCol = mix(stemCol, vec3(0.3, 0.18, 0.1), smoothstep(0.5, 1.0, stemY) * 0.4);
+          vec3 col = mix(vec3(0.06, 0.04, 0.03), vec3(0.25, 0.12, 0.06), smoothstep(0.0, 0.2, temp));
+          col = mix(col, vec3(0.7, 0.25, 0.04),  smoothstep(0.2, 0.45, temp));
+          col = mix(col, vec3(1.0, 0.55, 0.1),   smoothstep(0.45, 0.65, temp));
+          col = mix(col, vec3(1.0, 0.9, 0.55),   smoothstep(0.65, 0.85, temp));
+          col = mix(col, vec3(1.0, 0.98, 0.9),   smoothstep(0.85, 1.0, temp));
 
-      col = mix(col, stemCol, stemMask * stemGrow);
-      alpha = max(alpha, stemMask * stemGrow * 0.9);
+          float ls = cloudShape(pos + sun * 0.5, t);
+          float ln = fbm2(np + sun * 0.65);
+          float lit = exp(-ls * (ln * 0.5 + 0.5) * 5.0);
+          col *= 0.15 + 0.85 * lit;
+          col += vec3(0.02, 0.03, 0.05) * (1.0 - lit) * 0.3;
+
+          float a = d * 0.07;
+          sum += vec4(col * a, a) * (1.0 - sum.a);
+        }
+      }
     }
   }
 
-  // --- Mushroom cap ---
-  if (t > 0.6) {
-    float capGrow = clamp((t - 0.6) / 3.0, 0.0, 1.0);
-    float capRise = mix(0.0, 0.15, risePhase);
-    vec2 capCenter = vec2(0.0, 0.08 + capRise);
-    float capRx = 0.22 * capGrow;
-    float capRy = 0.14 * capGrow;
-
-    vec2 cp = p - capCenter;
-    float capDist = length(vec2(cp.x / capRx, cp.y / capRy));
-
-    float cn = fbm(vec2(atan(cp.y, cp.x) * 3.0 + t * 0.3, capDist * 6.0 - t * 0.8));
-    float cn2 = fbm(vec2(cp.x * 8.0 - t * 0.5, cp.y * 8.0 + t * 0.7));
-    float edge = 1.0 + cn * 0.35 + cn2 * 0.15;
-
-    float capMask = smoothstep(edge, edge - 0.3, capDist);
-    float temp = (1.0 - capDist / edge) * capMask;
-
-    vec3 capCol = mix(vec3(0.5, 0.18, 0.02), vec3(0.9, 0.35, 0.05), temp);
-    capCol = mix(capCol, vec3(1.0, 0.75, 0.25), temp * temp);
-    capCol = mix(capCol, vec3(1.0, 0.95, 0.8), pow(temp, 4.0));
-
-    // Cauliflower billowing detail
-    float billow = fbm(vec2(cp.x * 15.0 + t * 0.6, cp.y * 15.0 - t * 1.2));
-    capCol = mix(capCol, capCol * 0.6, billow * 0.3 * capMask);
-
-    // Smoke on outer edge
-    float smokeBand = smoothstep(0.6, 0.9, capDist / edge) * capMask;
-    vec3 smokeCol = mix(vec3(0.25, 0.15, 0.08), vec3(0.45, 0.3, 0.2), cn2);
-    capCol = mix(capCol, smokeCol, smokeBand * 0.6);
-
-    // Cap curl-under (torus rim)
-    float rimY = capCenter.y - capRy * 0.5;
-    float rimDist = length(vec2(cp.x / (capRx * 1.1), (p.y - rimY) / (capRy * 0.4)));
-    float rimMask = smoothstep(1.2, 0.8, rimDist) * smoothstep(capCenter.y - capRy * 0.8, capCenter.y, p.y);
-    rimMask *= (1.0 - smoothstep(0.0, 0.5, capDist / edge));
-    vec3 rimCol = mix(vec3(0.6, 0.2, 0.03), vec3(0.9, 0.4, 0.1), cn);
-    capCol = mix(capCol, rimCol, rimMask * 0.4);
-
-    col = mix(col, capCol, capMask * capGrow);
-    alpha = max(alpha, capMask * capGrow);
+  if (t < 0.5) {
+    float fi = pow(1.0 - t / 0.5, 2.0);
+    float flash = exp(-length(uv) * 3.0) * fi;
+    sum.rgb += vec3(1.0, 0.98, 0.92) * flash;
+    sum.a = max(sum.a, flash);
   }
 
-  // --- Hot core glow in cap center ---
-  if (t > 1.0 && t < 5.0) {
-    float capRise = mix(0.0, 0.15, risePhase);
-    vec2 capCenter = vec2(0.0, 0.08 + capRise);
-    float glow = exp(-length(p - capCenter) * 8.0) * clamp((t - 1.0) / 1.0, 0.0, 1.0);
-    glow *= smoothstep(5.0, 3.5, t);
-    col += vec3(1.0, 0.9, 0.5) * glow * 0.5;
-    alpha = max(alpha, glow * 0.4);
+  if (t > 0.08 && t < 2.5) {
+    float st = (t - 0.08) / 2.42;
+    float ring = exp(-pow((length(uv) - st * 1.5) * 9.0, 2.0)) * (1.0 - st);
+    sum.rgb += vec3(1.0, 0.8, 0.45) * ring * 0.45;
+    sum.a = max(sum.a, ring * 0.35);
   }
 
-  alpha *= clamp(fadeAlpha, 0.0, 1.0);
-  gl_FragColor = vec4(col, clamp(alpha, 0.0, 1.0));
+  if (t > 0.2 && t < 5.5) {
+    float gy = uv.y + 0.38;
+    float glow = exp(-gy * gy * 40.0) * exp(-uv.x * uv.x * 3.0);
+    glow *= smoothstep(0.2, 0.8, t) * smoothstep(5.5, 3.5, t);
+    sum.rgb += vec3(1.0, 0.45, 0.05) * glow * 0.25;
+    sum.a = max(sum.a, glow * 0.2);
+  }
+
+  sum.a *= fadeAlpha;
+  gl_FragColor = vec4(sum.rgb, clamp(sum.a, 0.0, 1.0));
 }
 `
 
@@ -812,8 +801,10 @@ function NukeExplosion({ onComplete }) {
   useEffect(() => {
     const cvs = canvasRef.current
     if (!cvs) return
-    cvs.width = window.innerWidth
-    cvs.height = window.innerHeight
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5)
+    const scale = 0.7
+    cvs.width = Math.round(window.innerWidth * scale * dpr)
+    cvs.height = Math.round(window.innerHeight * scale * dpr)
 
     const gl = cvs.getContext('webgl', { alpha: true, premultipliedAlpha: false })
     if (!gl) { onComplete(); return }
@@ -825,6 +816,9 @@ function NukeExplosion({ onComplete }) {
       const s = gl.createShader(type)
       gl.shaderSource(s, src)
       gl.compileShader(s)
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+        console.error('Shader compile error:', gl.getShaderInfoLog(s))
+      }
       return s
     }
 
@@ -832,6 +826,11 @@ function NukeExplosion({ onComplete }) {
     gl.attachShader(prog, compileShader(NUKE_VERT, gl.VERTEX_SHADER))
     gl.attachShader(prog, compileShader(NUKE_FRAG, gl.FRAGMENT_SHADER))
     gl.linkProgram(prog)
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      console.error('Program link error:', gl.getProgramInfoLog(prog))
+      onComplete()
+      return
+    }
     gl.useProgram(prog)
 
     const buf = gl.createBuffer()
@@ -846,16 +845,21 @@ function NukeExplosion({ onComplete }) {
     gl.uniform2f(uRes, cvs.width, cvs.height)
 
     const start = performance.now()
-    const duration = 7000
     let rafId
 
     function render() {
       const elapsed = (performance.now() - start) / 1000
       if (elapsed > 7.5) {
+        cvs.style.transform = ''
         cancelAnimationFrame(rafId)
         onComplete()
         return
       }
+      const shake = Math.max(0, 1.0 - elapsed / 3.0) * 6
+      const sx = (Math.random() - 0.5) * shake
+      const sy = (Math.random() - 0.5) * shake
+      cvs.style.transform = `translate(${sx}px, ${sy}px)`
+
       gl.viewport(0, 0, cvs.width, cvs.height)
       gl.clearColor(0, 0, 0, 0)
       gl.clear(gl.COLOR_BUFFER_BIT)
@@ -865,12 +869,13 @@ function NukeExplosion({ onComplete }) {
     }
     rafId = requestAnimationFrame(render)
 
-    return () => cancelAnimationFrame(rafId)
+    return () => { cancelAnimationFrame(rafId); cvs.style.transform = '' }
   }, [onComplete])
 
   return (
     <canvas ref={canvasRef} style={{
       position: 'fixed', inset: 0, zIndex: 10000, pointerEvents: 'none',
+      width: '100vw', height: '100vh',
     }} />
   )
 }
