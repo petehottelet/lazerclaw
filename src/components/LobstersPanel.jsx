@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { FabricImage } from 'fabric'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -36,12 +36,19 @@ export default function LobstersPanel({ canvasState }) {
   const dm = !!canvasState.darkMode
   const { canvasRef, saveUndoState, refreshObjects } = canvasState
   const [loadingFile, setLoadingFile] = useState(null)
+  const [generating, setGenerating] = useState(false)
+  const [generatedLobsters, setGeneratedLobsters] = useState([])
 
-  const addToCanvas = useCallback((file) => {
+  useEffect(() => {
+    fetch('/api/lobsters')
+      .then(r => r.ok ? r.json() : { lobsters: [] })
+      .then(data => setGeneratedLobsters(data.lobsters || []))
+      .catch(() => {})
+  }, [])
+
+  const addImageToCanvas = useCallback((src) => {
     const canvas = canvasRef.current
     if (!canvas) return
-    setLoadingFile(file)
-
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => {
@@ -60,14 +67,46 @@ export default function LobstersPanel({ canvasState }) {
       setLoadingFile(null)
     }
     img.onerror = () => setLoadingFile(null)
-    img.src = `${BASE_PATH}/${file}`
+    img.src = src
   }, [canvasRef, saveUndoState, refreshObjects])
 
-  const handleDragStart = (e, file) => {
-    e.dataTransfer.setData('text/uri-list', `${BASE_PATH}/${file}`)
-    e.dataTransfer.setData('text/plain', file)
+  const addToCanvas = useCallback((file) => {
+    setLoadingFile(file)
+    addImageToCanvas(`${BASE_PATH}/${file}`)
+  }, [addImageToCanvas])
+
+  const addGeneratedToCanvas = useCallback((url) => {
+    setLoadingFile(url)
+    addImageToCanvas(url)
+  }, [addImageToCanvas])
+
+  const handleDragStart = (e, src) => {
+    e.dataTransfer.setData('text/uri-list', src)
+    e.dataTransfer.setData('text/plain', src)
     e.dataTransfer.effectAllowed = 'copy'
   }
+
+  const generateLobster = useCallback(async () => {
+    setGenerating(true)
+    try {
+      const res = await fetch('/api/lobsters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || 'Generation failed')
+      }
+      const lobster = await res.json()
+      setGeneratedLobsters(prev => [lobster, ...prev])
+    } catch (err) {
+      console.error('Lobster generation failed:', err)
+    } finally {
+      setGenerating(false)
+    }
+  }, [])
+
+  const totalCount = generatedLobsters.length + LOBSTER_IMAGES.length
 
   return (
     <div className={`w-64 border-r flex flex-col shrink-0 relative z-10 ${dm ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -76,7 +115,7 @@ export default function LobstersPanel({ canvasState }) {
           Stock Lobsters
         </span>
         <span className={`text-[10px] tabular-nums ${dm ? 'text-gray-500' : 'text-gray-400'}`}>
-          {LOBSTER_IMAGES.length}
+          {totalCount}
         </span>
       </div>
 
@@ -85,7 +124,60 @@ export default function LobstersPanel({ canvasState }) {
           Heavy metal lobsters in real life situations. Click or drag to add to canvas.
         </div>
 
+        <button
+          onClick={generateLobster}
+          disabled={generating}
+          className="w-full mb-2 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide text-white transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-wait flex items-center justify-center gap-2"
+          style={{ background: 'linear-gradient(180deg, #181440 0%, #7888c8 48%, #ffffff 50%, #2a1050 52%, #8848c8 100%)', border: '1px solid rgba(192,192,208,0.3)' }}
+        >
+          {generating ? (
+            <>
+              <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray="31.4 31.4" />
+              </svg>
+              Generating…
+            </>
+          ) : (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Generate Lobster
+            </>
+          )}
+        </button>
+
         <div className="grid grid-cols-2 gap-1.5 px-0.5">
+          {generatedLobsters.map((lob) => (
+            <button
+              key={lob.url}
+              className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-colors cursor-pointer group relative ${
+                dm
+                  ? 'border-purple-500/40 hover:border-purple-400 hover:bg-gray-700/60'
+                  : 'border-purple-200 hover:border-purple-500 hover:bg-purple-50'
+              } ${loadingFile === lob.url ? 'opacity-50' : ''}`}
+              onClick={() => addGeneratedToCanvas(lob.url)}
+              draggable
+              onDragStart={(e) => handleDragStart(e, lob.url)}
+              title={lob.title}
+            >
+              <div className="w-full aspect-square flex items-center justify-center overflow-hidden rounded relative">
+                <img
+                  src={lob.url}
+                  alt={lob.title}
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                  loading="lazy"
+                />
+                <span className={`absolute top-0.5 right-0.5 text-[6px] font-bold px-1 py-0.5 rounded ${dm ? 'bg-purple-600/80 text-purple-100' : 'bg-purple-100 text-purple-700'}`}>
+                  AI
+                </span>
+              </div>
+              <span className={`text-[8px] leading-tight text-center truncate w-full ${dm ? 'text-gray-400 group-hover:text-gray-200' : 'text-gray-500 group-hover:text-gray-800'}`}>
+                {lob.title}
+              </span>
+            </button>
+          ))}
+
           {LOBSTER_IMAGES.map(({ file, title }) => (
             <button
               key={file}
@@ -96,7 +188,7 @@ export default function LobstersPanel({ canvasState }) {
               } ${loadingFile === file ? 'opacity-50' : ''}`}
               onClick={() => addToCanvas(file)}
               draggable
-              onDragStart={(e) => handleDragStart(e, file)}
+              onDragStart={(e) => handleDragStart(e, `${BASE_PATH}/${file}`)}
               title={title}
             >
               <div className="w-full aspect-square flex items-center justify-center overflow-hidden rounded">
