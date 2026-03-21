@@ -1213,6 +1213,26 @@ export default function AgentChat({ canvasState }) {
         }
       }
 
+      // Fallback: if Gemini should have generated an image but didn't, use the standalone API
+      const shouldHaveImage = intent?.type === 'generate' || intent?.type === 'edit' || intent?.type === 'blend' || intent?.type === 'refine'
+      if (imagePreviews.length === 0 && shouldHaveImage) {
+        try {
+          const { generateImage } = await import('../utils/aiImageApi')
+          const fallbackData = await generateImage({ prompt: userText.trim() })
+          const fallbackUrl = fallbackData.urls?.[0]
+          if (fallbackUrl) {
+            imagePreviews.push({
+              id: uuidv4(),
+              url: fallbackUrl,
+              action: { prompt: userText.trim() },
+              added: false,
+            })
+          }
+        } catch (fallbackErr) {
+          console.warn('Fallback image generation failed:', fallbackErr)
+        }
+      }
+
       const assistantMsg = {
         role: 'assistant',
         content: text || (imagePreviews.length > 0 ? 'Here you go!' : 'I received an empty response. Please try again.'),
