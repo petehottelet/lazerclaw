@@ -1266,7 +1266,7 @@ export default function AgentChat({ canvasState }) {
             const data = await generateImageApi({
               prompt: action.prompt || '',
               aspectRatio: action.aspectRatio || '1:1',
-              addMetal: false,
+              addMetal: true,
             })
             const url = data.urls?.[0]
             if (url) {
