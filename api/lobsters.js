@@ -1,5 +1,7 @@
 import { put, list } from '@vercel/blob'
 
+export const config = { maxDuration: 60 }
+
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 const MODEL = 'gemini-2.5-flash-image'
 const BLOB_PREFIX = 'generated-lobsters/'
@@ -91,6 +93,9 @@ async function generateLobsterImage(apiKey) {
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
+      if (!process.env.BLOB_READ_WRITE_TOKEN) {
+        return res.status(500).json({ error: 'BLOB_READ_WRITE_TOKEN not configured', lobsters: [] })
+      }
       const result = await list({ prefix: BLOB_PREFIX })
       const lobsters = result.blobs
         .filter(b => b.size > 0)
@@ -101,8 +106,8 @@ export default async function handler(req, res) {
         })
       return res.status(200).json({ lobsters })
     } catch (err) {
-      console.error('List lobsters error:', err)
-      return res.status(500).json({ error: err.message })
+      console.error('List lobsters error:', err?.message, err?.stack)
+      return res.status(500).json({ error: `List failed: ${err?.message}`, lobsters: [] })
     }
   }
 
