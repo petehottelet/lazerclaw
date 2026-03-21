@@ -1342,5 +1342,15 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+window.addEventListener('unhandledrejection', (e) => {
+  if (e.reason?.message?.includes('Failed to fetch dynamically imported module') || e.reason?.message?.includes('Importing a module script failed')) {
+    e.preventDefault()
+    if (!sessionStorage.getItem('_chunk_reload')) {
+      sessionStorage.setItem('_chunk_reload', '1')
+      window.location.reload()
+    }
+  }
+})
+
 const root = ReactDOM.createRoot(document.getElementById('root'))
 root.render(<ErrorBoundary><Root /></ErrorBoundary>)
