@@ -2437,32 +2437,31 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
     try {
       const { generateImage } = await import('../utils/aiImageApi')
       const data = await generateImage({
-        prompt: 'Nuclear bomb crater aftermath, scorched earth with a massive impact crater, glowing embers, charred ground radiating outward, smoke wisps, devastation',
+        prompt: 'Aerial top-down view of a massive nuclear bomb crater in scorched earth, glowing embers and charred ground radiating outward from the impact center, smoke wisps rising, devastation, photorealistic',
         aspectRatio: canvasState.canvasW > canvasState.canvasH ? '16:9' : canvasState.canvasW < canvasState.canvasH ? '9:16' : '1:1',
+        addMetal: false,
       })
       const url = data.urls?.[0]
       if (url && canvas) {
         const { FabricImage } = await import('fabric')
         const { v4: uuidv4 } = await import('uuid')
-        const tryLoad = (useCors) => {
-          const img = new Image()
-          if (useCors) img.crossOrigin = 'anonymous'
-          img.onload = () => {
-            const fImg = new FabricImage(img, { _dtoolId: uuidv4() })
-            const scale = Math.max(canvasState.canvasW / fImg.width, canvasState.canvasH / fImg.height)
-            fImg.set({
-              scaleX: scale, scaleY: scale,
-              left: (canvasState.canvasW - fImg.width * scale) / 2,
-              top: (canvasState.canvasH - fImg.height * scale) / 2,
-            })
-            canvas.add(fImg)
-            canvas.renderAll()
-            refreshObjects()
-          }
-          img.onerror = () => { if (useCors) tryLoad(false) }
-          img.src = url
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => {
+          const fImg = new FabricImage(img, { _dtoolId: uuidv4() })
+          const scale = Math.max(canvasState.canvasW / fImg.width, canvasState.canvasH / fImg.height)
+          fImg.set({
+            scaleX: scale, scaleY: scale,
+            left: (canvasState.canvasW - fImg.width * scale) / 2,
+            top: (canvasState.canvasH - fImg.height * scale) / 2,
+          })
+          canvas.add(fImg)
+          canvas.setActiveObject(fImg)
+          canvas.renderAll()
+          refreshObjects()
         }
-        tryLoad(true)
+        img.onerror = () => console.error('Crater image failed to load')
+        img.src = url
       }
     } catch (err) {
       console.error('Crater generation failed:', err)
