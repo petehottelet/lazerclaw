@@ -2883,11 +2883,8 @@ export default function Toolbar({ canvasState, onToggleDarkMode }) {
         className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors shrink-0 ${nukeActive ? 'animate-pulse' : ''} ${dm ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
         title="Nuclear Explosion"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill={nukeActive ? '#f59e0b' : (dm ? 'rgba(220,180,60,0.5)' : 'rgba(180,140,30,0.45)')}>
-          <circle cx="12" cy="12" r="2.5" />
-          <path d="M12 9.5 C10.5 7.5 10 5 11 2.5 A10 10 0 0 1 18.5 6.5 C17 6 14.5 7 13.2 9" />
-          <path d="M14 13.5 C16 14.5 17.5 16.5 17.5 19 A10 10 0 0 1 6.5 19 C8 18 9.5 16 10 13.5" />
-          <path d="M10.2 11 C8.5 10 6.5 10 4 11.5 A10 10 0 0 1 8.5 3 C8.5 5 9.5 7 10.8 9" />
+        <svg width="20" height="20" viewBox="0 -960 960 960" fill={nukeActive ? '#f59e0b' : (dm ? 'rgba(220,180,60,0.5)' : 'rgba(180,140,30,0.45)')}>
+          <path d="M216-164q-29-17-37-48.5t10-60.5l104-179q-52-34-82.5-90.5T180-660q0-22 3-43.5t10-41.5q10-31 38.5-42.5T288-788l210 121 210-121q28-12 56.5-.5T803-745q7 20 10 41.5t3 43.5q0 61-30.5 117.5T703-452l104 179q17 29 9 60.5T779-164q-17 10-36.5 6.5T710-174L480-306 250-174q-13 10-32.5 13.5T216-164Zm264-256q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35Z" />
         </svg>
       </button>
 
