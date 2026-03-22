@@ -8,6 +8,7 @@ import IconsPanel from './components/IconsPanel'
 import LobstersPanel from './components/LobstersPanel'
 import AiToolsPanel from './components/AiToolsPanel'
 import GeneratedImagesPanel from './components/GeneratedImagesPanel'
+import VideosPanel from './components/VideosPanel'
 import CanvasArea from './components/CanvasArea'
 import RightSidebar from './components/RightSidebar'
 import AgentChat from './components/AgentChat'
@@ -534,6 +535,9 @@ export default function App() {
         )}
         {activePanel === 'gallery' && (
           <GeneratedImagesPanel canvasState={canvasState} />
+        )}
+        {activePanel === 'videos' && (
+          <VideosPanel canvasState={canvasState} />
         )}
         <CanvasArea canvasState={canvasState} />
         <FloatingPenToolbar canvasState={canvasState} />

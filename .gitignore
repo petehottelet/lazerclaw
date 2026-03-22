@@ -16,6 +16,7 @@ audio/
 elements/
 artworks/
 clipart/
+public/motion/
 
 # Sensitive tokens and API keys - NEVER COMMIT
 token.md

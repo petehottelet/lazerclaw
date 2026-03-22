@@ -555,6 +555,7 @@ function MessageBubble({ message, darkMode, onAddToDesign, onChoiceClick, msgInd
                       border: '1px solid rgba(14,165,233,0.5)',
                       boxShadow: '0 0 12px rgba(14,165,233,0.3)',
                       cursor: 'default',
+                      textShadow: '0 1px 4px rgba(0,0,0,0.7), 0 0 10px rgba(0,0,0,0.4)',
                     }
                   : choice.dismissed
                     ? {
@@ -569,6 +570,7 @@ function MessageBubble({ message, darkMode, onAddToDesign, onChoiceClick, msgInd
                         color: darkMode ? '#7dd3fc' : '#0284c7',
                         border: darkMode ? '1px solid rgba(14,165,233,0.3)' : '1px solid rgba(14,165,233,0.25)',
                         cursor: 'pointer',
+                        textShadow: '0 1px 4px rgba(0,0,0,0.7), 0 0 10px rgba(0,0,0,0.4)',
                       }
                 }
                 onMouseEnter={e => { if (!choice.chosen && !choice.dismissed) { e.currentTarget.style.background = darkMode ? 'rgba(14,165,233,0.22)' : 'rgba(14,165,233,0.15)'; e.currentTarget.style.boxShadow = '0 0 8px rgba(14,165,233,0.2)' } }}

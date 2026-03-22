@@ -3055,7 +3055,7 @@ function AiToolsDropdown({ canvasState, dm, bloodRain }) {
           }}
         >
           {bloodRain && <BloodFill />}
-          <div className="text-xs font-bold mb-1" style={{ color: dm ? '#8bb8ff' : '#2563eb' }}>
+          <div className="text-xs font-bold mb-1 font-rocker" style={{ color: '#ffffff' }}>
             ⚡ Quick Image Generate
           </div>
           <textarea

@@ -70,7 +70,7 @@ export function useCanvasState() {
   const [canvasW, setCanvasW] = useState(DEFAULT_CANVAS_W)
   const [canvasH, setCanvasH] = useState(DEFAULT_CANVAS_H)
   const [penSubTool, setPenSubTool] = useState('pen')
-  const [penStrokeColor, setPenStrokeColor] = useState('#000000')
+  const [penStrokeColor, setPenStrokeColor] = useState('#8B0000')
   const [penFillColor, setPenFillColor] = useState('transparent')
   const [penStrokeWidth, setPenStrokeWidth] = useState(2)
   const [penDashArray, setPenDashArray] = useState([])
